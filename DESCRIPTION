@@ -1,16 +1,12 @@
-Package: BuildABiocWorkshop
-Title: Bioconductor or R Workshop Template and Github Actions
-Version: 2.0.0
+Package: Bioc2022AllelicExpression
+Title: Bioc2022 workshop. SEESAW: Statistical Estimation Of Allelic Expression Using Salmon And Swish
+Version: 0.0.1
 Authors@R: 
-    person(given = "Sean",
-           family = "Davis",
-           role = c("aut", "cre"),
-           email = "seandavi@gmail.com",
-           comment = c(ORCID = "0000-0002-8991-6458"))
-Description: This package serves as a template for using github actions to 
-    prepare a Bioconductor Workshop package for use. In particular,
-    a pkgdown website and docker image are generated based on workflow 
-    settings. 
+    c(person("Euphy", "Wu", role="aut"),
+      person("Michael", "Love", role=c("aut", "cre"),
+             email="michaelisaiahlove@gmail.com"))
+Description: A workshop for BioC2022 conference exploring allelic expression analysis
+    in Bioconductor using Salmon and Swish methods.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,7 +18,7 @@ Suggests:
     knitr,
     rmarkdown,
     pkgdown
-URL: https://seandavi.github.io/BuildABiocWorkshop/
-BugReports: https://github.com/seandavi/BuildABiocWorkshop/issues/new/choose
+URL: https://mikelove.github.io/Bioc2022AllelicExpression
+BugReports: https://github.com/mikelove/Bioc2022AllelicExpression/issues/new/choose
 VignetteBuilder: knitr
-DockerImage: ghcr.io/seandavi/buildabiocworkshop:latest
+DockerImage: ghcr.io/mikelove/bioc2022allelicexpression:latest

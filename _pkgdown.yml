@@ -8,9 +8,3 @@ template:
 home:
   title: "Bioc2022AllelicExpression"
   type: inverse
-
-
-navbar:
-  right:
-   - icon: fa-github
-     href: https://github.com/mikelove/Bioc2022AllelicExpression

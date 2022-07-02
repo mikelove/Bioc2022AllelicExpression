@@ -1,13 +1,13 @@
 ---
 title: "SEESAW: Statistical Estimation Of Allelic Expression Using Salmon And Swish"
 author: Euphy Wu, Michael Love
+date: "July 2022"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{SEESAW: Statistical Estimation Of Allelic Expression Using Salmon And Swish}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -16,24 +16,16 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Allelic Expression Analysis
-
-Authors:
-    Euphy Wu^[UNC-Chapel Hill],
-    Michael Love^[UNC-Chapel Hill].
-    <br/>
-Last modified: July, 2022.
-
 ## Overview
 
 ### Description
 
 In this workshop, we will cover a newly developed suite of tools for
-performing analysis of allelic expression in Bioconductor. Students
+performing analysis of allelic expression in Bioconductor. You
 will learn about how we use upstream tools like `g2gtools` and
-`Salmon` to quantify allelic expression, and then they will be able to
-explore the data in R using the `fishpond` package. Altogether we call
-this suite of tools *SEESAW* for 
+`Salmon` to quantify allelic expression, and then how to explore the
+data in R using the `fishpond` package. Altogether we call this suite
+of tools *SEESAW* for
 "Statistical Estimation Of allelic Expression Using Salmon And sWish".
 
 This set of methods for quantifying and analyzing allelic data is
@@ -57,8 +49,9 @@ variation).
 
 ### Pre-requisites
 
-* Some familiarity with RNA-seq data will help
-* Some familiarity with working with *SummarizedExperiment* objects will help
+* Some basic background of RNA biology, e.g. what are genes, what are isoforms/transcripts?
+* Some familiarity with RNA-seq data, e.g. what are reads?
+* Some familiarity with working with *SummarizedExperiment* objects will help.
 
 Theoretical background on allelic expression:
 
@@ -103,6 +96,10 @@ An example for a 45-minute workshop:
 * create xyz plots
 * evaluate xyz data for artifacts
 
+## What is allelic expression and why do we care
+
+...
+
 ## SEESAW pipeline
 
 At the beginning of the workshop, we will give an overview of the
@@ -123,11 +120,11 @@ Links to relevant software:
   constructing the diploid transcriptome
 * Salmon, run with [bootstrap inferential replicates](https://salmon.readthedocs.io/en/latest/salmon.html#numbootstraps)
 
-## Importing allelic counts into R
+## Importing allelic counts
 
-The following three code chunks were used to import the allelic
-quantification from Salmon into R. These are un-evaluated, as the
-original data is too large to include in this package.
+The following five un-evaluated code chunks were used to import the
+allelic quantification from Salmon into R. These are un-evaluated, as
+the original data is too large to include in this package.
 
 First, we define `coldata` and `txps`, which describe the sample
 metadata, and the genomic ranges of the transcripts that were
@@ -146,10 +143,27 @@ edb <- ah[["AH89211"]]
 txps <- transcripts(edb)
 ```
 
+We can group to the gene level with the following `group_id`:
+
+```{r eval=FALSE}
+library(plyranges)
+txps <- txps %>%
+  select(tx_id, group_id=gene_id)
+```
+
 The following code chunk imports the allelic data, creating a "wide"
 *SummarizedExperiment* object which will have 2x the number of columns
-as the samples listed in `coldata`. We specify the `a1` and `a2`
-allele. By convention, the `a2` allele describes the reference allele.
+as the samples listed in `coldata`. We specify the strings that
+distinguish the `a1` and `a2` allele in the transcript FASTA file 
+(these are suffices that follow the transcript name, separated with an
+underscore, e.g. `ENST123_ref` and `ENST123_alt`.
+By convention, the `a2` allele describes the reference allele.
+In the `gse` object (gene-level SummarizedExperiment), the `a2`
+allelic counts will appear as the first columns followed by the `a1`
+allelic counts. Here we supply `txps` as a *GRanges* object with a
+metadata column `group_id` that describes how we collapse
+transcript-level counts.
+
 
 ```{r eval=FALSE}
 library(fishpond)
@@ -168,9 +182,78 @@ table(keep)
 gse <- gse[keep,]
 ```
 
+Alternatively, we can group transcript-level counts to the TSS level
+using the following code chunk to define `txps`. `makeTx2Tss()` is a
+convenience function in *fishpond*. The `maxgap=50` argument means we
+will group together transcripts that have TSS that fall within 50bp of
+each other.
+
+```{r eval=FALSE}
+txps <- makeTx2Tss(edb, maxgap=50) %>%
+  select(tx_id, gene_id, group_id, tss)
+```
+
+## Explore allelic counts
+
+We have two pre-packaged datasets as part of this workshop
+package, one where allelic counts from an RNA-seq experiment are
+summarized to the gene level, and another where they are summarized to
+the TSS level.
+
+The datasets are described in the man pages (see References), but
+briefly, mouse osteoblast cells were differentiated over a time course
+from day 2 to day 18. The data has been subset to just the genes on
+chr1. A reference for the experiment is:
+
+> Kemp JP, Medina-Gomez C, Estrada K, St Pourcain B et al.
+> Phenotypic dissection of bone mineral density reveals skeletal site specificity
+> and facilitates the identification of novel loci in the genetic regulation of
+> bone mass attainment. PLoS Genet 2014 Jun;10(6):e1004423. PMID: 24945404
+> <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4063697/>
+
+We load the gene-level dataset:
+
 ```{r message=FALSE}
 library(SummarizedExperiment)
 library(Bioc2022AllelicExpression)
 data(osteoblast_gene_chr1)
 osteoblast_gene_chr1
+g <- osteoblast_gene_chr1
+```
+
+The sample metadata:
+
+```{r}
+colData(g)
+```
+
+For each sample and each allele, we have counts and also bootstrap
+replicates. The bootstrap replicates are from Salmon, by specifying
+`--numBootstraps 30` during quantification.
+
+We can use *fishpond* functions to do some basic exploration of the
+allelic counts. 
+
+```{r histBoot}
+library(fishpond)
+assayNames(g)
+dat <- getTrace(g, idx=1, samp_idx="129xB6-d02-a2")
+hist(dat$count, border="white", col="grey50", xlab="estimated count, a2")
+```
+
+This plot shows the distribution of estimated counts for the first
+feature, and for the day 2 sample of the 129xB6 cross, reference allele.
+We can also visualize the distributions for all samples using
+`plotInfReps()`:
+
+```{r plotInfReps}
+plotInfReps(g, idx=1, x="allele", legend=TRUE)
+```
+
+We can also group the allelic counts by sample, e.g.:
+
+```{r plotInfReps2}
+plotInfReps(g[,g$cross == "CASTxB6"],
+            idx=1, x="allele", cov="day",
+            legend=TRUE)
 ```

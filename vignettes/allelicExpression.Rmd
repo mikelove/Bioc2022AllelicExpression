@@ -28,11 +28,32 @@ Last modified: July, 2022.
 
 ### Description
 
-In this workshop, we will cover a newly developed pipeline for
+In this workshop, we will cover a newly developed suite of tools for
 performing analysis of allelic expression in Bioconductor. Students
 will learn about how we use upstream tools like `g2gtools` and
 `Salmon` to quantify allelic expression, and then they will be able to
-explore the data in R using the `fishpond` package. 
+explore the data in R using the `fishpond` package. Altogether we call
+this suite of tools *SEESAW* for 
+"Statistical Estimation Of allelic Expression Using Salmon And sWish".
+
+This set of methods for quantifying and analyzing allelic data is
+similar to 
+[mmseq](https://github.com/eturro/mmseq), 
+in which uncertainty of assignment of reads to isoforms and alleles is
+estimated, stored, and using in statistical testing.
+It is also similar to 
+[EMASE](https://emase.readthedocs.io/en/latest/index.html), which is a
+quantification engine for isoform- and allele-level quantification
+(we also use the same upstream pipeline for construction of diploid
+reference transcripts).
+Our approach differs from other methods such as 
+[WASP](https://github.com/bmvdgeijn/WASP)
+or the Bioconductor package
+[AllelicImbalance](https://www.bioconductor.org/packages/AllelicImbalance),
+in that we do not focus on pileup of reads on particular SNPs, but
+instead integrate the isoform- and allele-level information contained
+in reads aligning to entire transcripts (including both SNP and indel
+variation). 
 
 ### Pre-requisites
 

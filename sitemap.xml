@@ -10,10 +10,10 @@
     <loc>https://mikelove.github.io/Bioc2022AllelicExpression/LICENSE.html</loc>
   </url>
   <url>
-    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/articles/index.html</loc>
+    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/articles/allelicExpression.html</loc>
   </url>
   <url>
-    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/articles/workshop_example.html</loc>
+    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/articles/index.html</loc>
   </url>
   <url>
     <loc>https://mikelove.github.io/Bioc2022AllelicExpression/authors.html</loc>
@@ -23,5 +23,11 @@
   </url>
   <url>
     <loc>https://mikelove.github.io/Bioc2022AllelicExpression/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/reference/osteoblast_gene_chr1.html</loc>
+  </url>
+  <url>
+    <loc>https://mikelove.github.io/Bioc2022AllelicExpression/reference/osteoblast_tss_chr1.html</loc>
   </url>
 </urlset>

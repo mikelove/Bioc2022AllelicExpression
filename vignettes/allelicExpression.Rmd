@@ -148,8 +148,8 @@ gse <- gse[keep,]
 ```
 
 ```{r message=FALSE}
-library(Bioc2022AllelicExpression)
 library(SummarizedExperiment)
-data("osteoblast_gene_chr1")
-gene
+library(Bioc2022AllelicExpression)
+data(osteoblast_gene_chr1)
+osteoblast_gene_chr1
 ```

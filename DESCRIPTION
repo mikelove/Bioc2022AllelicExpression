@@ -11,16 +11,14 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.0
-Depends:
-    R (>= 3.5.0),
-    Biobase
+RoxygenNote: 7.1.2
+Depends: R (>= 4.1.0)
 Suggests: 
     knitr,
     rmarkdown,
     pkgdown,
     SummarizedExperiment,
-    fishpond,
+    fishpond (>= 2.2.0),
     plyranges
 URL: https://mikelove.github.io/Bioc2022AllelicExpression
 BugReports: https://github.com/mikelove/Bioc2022AllelicExpression/issues/new/choose

@@ -28,30 +28,27 @@ Last modified: July, 2022.
 
 ### Description
 
-Along with the topic of your workshop, include how students can expect
-to spend their time. For the description may also include information
-about what type of workshop it is (e.g. instructor-led live demo, lab,
-lecture + lab, etc.). Instructors are strongly recommended to provide
-completely worked examples for lab sessions, and a set of stand-alone
-notes that can be read and understood outside of the workshop.
+In this workshop, we will cover a newly developed pipeline for
+performing analysis of allelic expression in Bioconductor. Students
+will learn about how we use upstream tools like `g2gtools` and
+`Salmon` to quantify allelic expression, and then they will be able to
+explore the data in R using the `fishpond` package. 
 
 ### Pre-requisites
 
-List any workshop prerequisites, for example:
+* Some familiarity with RNA-seq data will help
+* Some familiarity with working with *SummarizedExperiment* objects will help
 
-* Basic knowledge of R syntax
-* Familiarity with the GenomicRanges class
-* Familiarity with xyz vignette (provide link)
+Theoretical background on allelic expression:
 
-List relevant background reading for the workshop, including any
-theoretical background you expect students to have.
-
-* List any textbooks, papers, or other reading that students should be
-  familiar with. Include direct links where possible.
+* [Tools and best practices for data processing in allelic expression analysis](https://doi.org/10.1186/s13059-015-0762-6)
+* [A vast resource of allelic expression data spanning human tissues](https://doi.org/10.1186/s13059-020-02122-z)
+* [Hierarchical analysis of RNA-seq reads improves the accuracy of allele-specific expression](https://doi.org/10.1093/bioinformatics/bty078)
+* [Haplotype and isoform specific expression estimation using multi-mapping RNA-seq reads](https://doi.org/10.1186/gb-2011-12-2-r13)
 
 ### Participation
 
-Describe how students will be expected to participate in the workshop.
+The format is lecture + lab, with plenty of time for data exploration.
 
 ### _R_ / _Bioconductor_ packages used
 
@@ -67,29 +64,13 @@ An example for a 45-minute workshop:
 
 | Activity                     | Time |
 |------------------------------|------|
-|                              | 15m  |
-|                              | 15m  |
-|                              | 15m  |
+| Intro to allelic quant       | 15m  |
+| Exploration of data in R     | 15m  |
+| Testing and visualization    | 15m  |
 
 ### Workshop goals and objectives
 
-List "big picture" student-centered workshop goals and learning
-objectives. Learning goals and objectives are related, but not the
-same thing. These goals and objectives will help some people to decide
-whether to attend the conference for training purposes, so please make
-these as precise and accurate as possible.
-
-*Learning goals* are high-level descriptions of what
-participants will learn and be able to do after the workshop is
-over. *Learning objectives*, on the other hand, describe in very
-specific and measurable terms specific skills or knowledge
-attained. The [Bloom's Taxonomy](#bloom) may be a useful framework
-for defining and describing your goals and objectives, although there
-are others.
-
 ### Learning goals
-
-Some examples:
 
 * describe how to...
 * identify methods for...
@@ -112,7 +93,7 @@ detail in the
 for the fishpond package.
 
 ```{r, echo=FALSE}
-knitr::include_graphics("images/seesaw.png")
+knitr::include_graphics("images/SEESAW.png")
 ```
 
 Links to relevant software: 
@@ -123,4 +104,52 @@ Links to relevant software:
 
 ## Importing allelic counts into R
 
-The first goes here...
+The following three code chunks were used to import the allelic
+quantification from Salmon into R. These are un-evaluated, as the
+original data is too large to include in this package.
+
+First, we define `coldata` and `txps`, which describe the sample
+metadata, and the genomic ranges of the transcripts that were
+quantified (the haploid reference transcripts). We do not yet have a
+convenient way to describe the location of the transcripts in the
+diploid genome, so we still rely on a single reference genome here,
+although a diploid genome was used for quantifying allelic expression.
+
+```{r eval=FALSE}
+# `files` points to `quant.sf` files in original Salmon directories
+# other vectors here describe the samples
+coldata <- data.frame(cross, day, files, names)
+ah <- AnnotationHub()
+#query(ah, c("EnsDb","102","Mus musculus"))
+edb <- ah[["AH89211"]]
+txps <- transcripts(edb)
+```
+
+The following code chunk imports the allelic data, creating a "wide"
+*SummarizedExperiment* object which will have 2x the number of columns
+as the samples listed in `coldata`. We specify the `a1` and `a2`
+allele. By convention, the `a2` allele describes the reference allele.
+
+```{r eval=FALSE}
+library(fishpond)
+gse <- importAllelicCounts(
+  coldata, a1="alt", a2="ref",
+  format="wide", tx2gene=txps,
+)
+```
+
+Finally, we performed minimal filtering on the features:
+
+```{r eval=FALSE}
+# filtering out lowly expressed features:
+keep <- rowSums(assay(gse) >= 10) >= 6
+table(keep)
+gse <- gse[keep,]
+```
+
+```{r message=FALSE}
+library(Bioc2022AllelicExpression)
+library(SummarizedExperiment)
+data("osteoblast_gene_chr1")
+gene
+```

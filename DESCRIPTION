@@ -12,12 +12,16 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.0
-Depends: 
+Depends:
+    R (>= 3.5.0),
     Biobase
 Suggests: 
     knitr,
     rmarkdown,
-    pkgdown
+    pkgdown,
+    SummarizedExperiment,
+    fishpond,
+    plyranges
 URL: https://mikelove.github.io/Bioc2022AllelicExpression
 BugReports: https://github.com/mikelove/Bioc2022AllelicExpression/issues/new/choose
 VignetteBuilder: knitr

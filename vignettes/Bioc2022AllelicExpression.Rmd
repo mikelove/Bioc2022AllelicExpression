@@ -21,31 +21,52 @@ knitr::opts_chunk$set(
 ### Description
 
 In this workshop, we will cover a newly developed suite of tools for
-performing analysis of allelic expression in Bioconductor. You
-will learn about how we use upstream tools like `g2gtools` and
-`Salmon` to quantify allelic expression, and then how to explore the
+performing analysis of allelic expression in Bioconductor. You will
+learn about how we use upstream tools like `g2gtools` and `Salmon` to
+quantify allelic expression for RNA-seq, and then how to explore the
 data in R using the `fishpond` package. Altogether we call this suite
 of tools *SEESAW* for
 "Statistical Estimation Of allelic Expression Using Salmon And sWish".
 
-This set of methods for quantifying and analyzing allelic data is
-similar to 
+### Background and other methods
+
+The SEESAW set of methods for quantifying and analyzing allelic data
+is similar to 
 [mmseq](https://github.com/eturro/mmseq), 
 in which uncertainty of assignment of reads to isoforms and alleles is
 estimated, stored, and using in statistical testing.
 It is also similar to 
-[EMASE](https://emase.readthedocs.io/en/latest/index.html), which is a
-quantification engine for isoform- and allele-level quantification
-(we also use the same upstream pipeline for construction of diploid
-reference transcripts).
-Our approach differs from other methods such as 
+[EMASE](https://emase.readthedocs.io/en/latest/index.html), which
+provides quantification at isoform and allele level;
+SEESAW also use the same upstream pipeline as EMASE for construction
+of diploid reference transcripts.
+
+Our approach differs from existing methods for detecting allelic
+imbalance in RNA-seq data such as 
 [WASP](https://github.com/bmvdgeijn/WASP)
 or the Bioconductor package
 [AllelicImbalance](https://www.bioconductor.org/packages/AllelicImbalance),
 in that we do not focus on pileup of reads on particular SNPs, but
 instead integrate the isoform- and allele-level information contained
 in reads aligning to entire transcripts (including both SNP and indel
-variation). 
+variation). However, these existing methods can be used across
+patients with different genomes, while the SEESAW methods are designed
+for analyzing replicate samples with the same diploid genomes (e.g. F1
+crosses, or time series of human cell lines).
+
+A recent method for isoform- and allele-level testing is the
+Bioconductor package
+[PAIRADISE](https://www.bioconductor.org/packages/PAIRADISE),
+which quantifies reads that contain both allelic and isoform-level
+information: those that contain both a heterozygous SNP and a splice
+juntion.
+Another relevant recently developed method is
+[ASEP](https://github.com/Jiaxin-Fan/ASEP),
+which allows for gene-level allelic imbalance detection, accounting
+for unknown genotype of other nearby regulatory variants.
+PAIRADISE and ASEP are therefore applicable across populations of
+genotypically diverse individuals. We link to these publications for
+background reading below.
 
 ### Pre-requisites
 
@@ -53,16 +74,18 @@ variation).
 * Some familiarity with RNA-seq data, e.g. what are reads?
 * Some familiarity with working with *SummarizedExperiment* objects will help.
 
-Theoretical background on allelic expression:
+### Background reading
 
 * [Tools and best practices for data processing in allelic expression analysis](https://doi.org/10.1186/s13059-015-0762-6)
 * [A vast resource of allelic expression data spanning human tissues](https://doi.org/10.1186/s13059-020-02122-z)
-* [Hierarchical analysis of RNA-seq reads improves the accuracy of allele-specific expression](https://doi.org/10.1093/bioinformatics/bty078)
-* [Haplotype and isoform specific expression estimation using multi-mapping RNA-seq reads](https://doi.org/10.1186/gb-2011-12-2-r13)
+* [Haplotype and isoform specific expression estimation using multi-mapping RNA-seq reads](https://doi.org/10.1186/gb-2011-12-2-r13) (mmseq)
+* [Hierarchical analysis of RNA-seq reads improves the accuracy of allele-specific expression](https://doi.org/10.1093/bioinformatics/bty078) (EMASE)
+* [Detecting Allele-Specific Alternative Splicing from Population-Scale RNA-Seq Data](https://doi.org/10.1016/j.ajhg.2020.07.005) (PAIRADISE)
+* [ASEP: Gene-based detection of allele-specific expression across individuals in a population by RNA sequencing](https://doi.org/10.1371/journal.pgen.1008786)
 
 ### Participation
 
-The format is lecture + lab, with plenty of time for data exploration.
+The format is lecture + lab, with time for data exploration.
 
 ### _R_ / _Bioconductor_ packages used
 
@@ -86,19 +109,48 @@ An example for a 45-minute workshop:
 
 ### Learning goals
 
-* describe how to...
-* identify methods for...
-* understand the difference between...
+* understand why analyzing allelic expression can be useful for
+  learning about *cis* genetic regulation
+* understand differences between approaches to allelic quantification
+* understand difference among types of allelic imbalance tests,
+  e.g. "global", "differential", and "dynamic" imbalance
 
 ### Learning objectives
 
-* analyze xyz data to produce...
-* create xyz plots
-* evaluate xyz data for artifacts
+* import allelic quantification data into R
+* exploratory analysis of allelic data with uncertainty
+* statistical testing for allelic imbalance across samples
+* exploration of testing results with heatmaps and genome browser
+  plots 
 
 ## What is allelic expression and why do we care
 
-...
+```{r, echo=FALSE, fig.alt="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg"}
+knitr::include_graphics("images/heterozygous.jpg")
+```
+
+Let us assume for this workshop that we are studying a diploid
+organism, and we focus on the genes with two copies (so genes on the
+autosome, and e.g. chr X for XX individuals). We do not consider here
+allelic quantification in cases of complex copy number such as tumor
+gene expression. 
+
+In most RNA-seq pipelines, we are concerned with *total expression* of
+genes or transcripts, where we do not distinguish between RNA
+transcripts from either of the two chromosomes. Suppose the light blue
+region highlighted above is a gene, and there are two alleles (B and
+b) which differ by one or more genetic variants. In the case that
+there are genetic variants falling within the exons of the gene, some
+RNA-seq reads may contain information that allows us to determine the
+origin of the RNA transcript, whether from the B chromosome or the b
+chromosome. Typically, RNA-seq analysis pipelines just are concerned
+with counting reads aligning to the light blue region, perhaps
+attempting to identify which splice isoforms these align to, but not
+concerned with identifying which chromosome the reads come from.
+
+What does allelic tell us...
+
+Why bootstrapping? Why do we need this information?
 
 ## SEESAW pipeline
 
@@ -110,7 +162,18 @@ detail in the
 [allelic vignette](https://mikelove.github.io/fishpond/articles/allelic.html) 
 for the fishpond package.
 
-```{r, echo=FALSE}
+The input to the pipeline of methods is RNA-seq data (FASTQ files),
+information about the diploid reference genome (e.g. VCF file), and
+information about the isoforms (e.g. GTF file). The SEESAW suite of
+methods is currently designed to work for experiments with multiple
+replicates of samples with the same diploid genome, e.g. F1 crosses,
+or time series of human cell lines.
+
+The R code below will begin at the center blue square with
+`importAllelicCounts()`, assuming that diploid quantification with
+bootstrap replicates for uncertainty has already been performed.
+
+```{r, echo=FALSE, fig.alt="Diagram of SEESAW pipeline, including g2gtools, Salmon index, Salmon quant, and import into Bioconductor using fishpond package funcctions"}
 knitr::include_graphics("images/SEESAW.png")
 ```
 
@@ -229,7 +292,9 @@ colData(g)
 
 For each sample and each allele, we have counts and also bootstrap
 replicates. The bootstrap replicates are from Salmon, by specifying
-`--numBootstraps 30` during quantification.
+`--numBootstraps 30` during quantification. 
+
+**Q: Why do we need bootstrap replicates?**
 
 We can use *fishpond* functions to do some basic exploration of the
 allelic counts. 
@@ -250,10 +315,24 @@ We can also visualize the distributions for all samples using
 plotInfReps(g, idx=1, x="allele", legend=TRUE)
 ```
 
-We can also group the allelic counts by sample, e.g.:
+We can also group the allelic counts ordered by sample, e.g.:
 
 ```{r plotInfReps2}
-plotInfReps(g[,g$cross == "CASTxB6"],
-            idx=1, x="allele", cov="day",
-            legend=TRUE)
+gcast <- g[,g$cross == "CASTxB6"]
+plotInfReps(gcast, idx=1, x="allele", cov="day", legend=TRUE)
+```
+
+In the above plot, the samples are ordered by sample, as if `day` x
+`allele` were a categorical variable. We can also plot `day` on its
+original continuous scale. To do so, we use points and lines to
+represent the bootstrap distribution instead of boxplots. To draw the
+line, we need to first compute the bootstrap variance, which can be
+computed with the `computeInfRV()` function (InfRV = "inferential
+relative variance", a useful diagnostic for comparing uncertainty
+across features):
+
+```{r plotInfReps3}
+gcast <- computeInfRV(gcast)
+plotInfReps(gcast, idx=1, x="day", cov="allele",
+            shiftX=.2, legend=TRUE)
 ```

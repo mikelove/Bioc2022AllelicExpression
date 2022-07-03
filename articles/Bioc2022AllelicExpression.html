@@ -89,23 +89,41 @@ Michael Love</h4>
 <p>In this workshop, we will cover a newly developed suite of tools for
 performing analysis of allelic expression in Bioconductor. You will
 learn about how we use upstream tools like <code>g2gtools</code> and
-<code>Salmon</code> to quantify allelic expression, and then how to
-explore the data in R using the <code>fishpond</code> package.
+<code>Salmon</code> to quantify allelic expression for RNA-seq, and then
+how to explore the data in R using the <code>fishpond</code> package.
 Altogether we call this suite of tools <em>SEESAW</em> for “Statistical
 Estimation Of allelic Expression Using Salmon And sWish”.</p>
-<p>This set of methods for quantifying and analyzing allelic data is
-similar to <a href="https://github.com/eturro/mmseq" class="external-link">mmseq</a>, in which
-uncertainty of assignment of reads to isoforms and alleles is estimated,
-stored, and using in statistical testing. It is also similar to <a href="https://emase.readthedocs.io/en/latest/index.html" class="external-link">EMASE</a>,
-which is a quantification engine for isoform- and allele-level
-quantification (we also use the same upstream pipeline for construction
-of diploid reference transcripts). Our approach differs from other
-methods such as <a href="https://github.com/bmvdgeijn/WASP" class="external-link">WASP</a> or
-the Bioconductor package <a href="https://www.bioconductor.org/packages/AllelicImbalance" class="external-link">AllelicImbalance</a>,
+</div>
+<div class="section level3">
+<h3 id="background-and-other-methods">Background and other methods<a class="anchor" aria-label="anchor" href="#background-and-other-methods"></a>
+</h3>
+<p>The SEESAW set of methods for quantifying and analyzing allelic data
+is similar to <a href="https://github.com/eturro/mmseq" class="external-link">mmseq</a>, in
+which uncertainty of assignment of reads to isoforms and alleles is
+estimated, stored, and using in statistical testing. It is also similar
+to <a href="https://emase.readthedocs.io/en/latest/index.html" class="external-link">EMASE</a>,
+which provides quantification at isoform and allele level; SEESAW also
+use the same upstream pipeline as EMASE for construction of diploid
+reference transcripts.</p>
+<p>Our approach differs from existing methods for detecting allelic
+imbalance in RNA-seq data such as <a href="https://github.com/bmvdgeijn/WASP" class="external-link">WASP</a> or the Bioconductor
+package <a href="https://www.bioconductor.org/packages/AllelicImbalance" class="external-link">AllelicImbalance</a>,
 in that we do not focus on pileup of reads on particular SNPs, but
 instead integrate the isoform- and allele-level information contained in
 reads aligning to entire transcripts (including both SNP and indel
-variation).</p>
+variation). However, these existing methods can be used across patients
+with different genomes, while the SEESAW methods are designed for
+analyzing replicate samples with the same diploid genomes (e.g. F1
+crosses, or time series of human cell lines).</p>
+<p>A recent method for isoform- and allele-level testing is the
+Bioconductor package <a href="https://www.bioconductor.org/packages/PAIRADISE" class="external-link">PAIRADISE</a>,
+which quantifies reads that contain both allelic and isoform-level
+information: those that contain both a heterozygous SNP and a splice
+juntion. Another relevant recently developed method is <a href="https://github.com/Jiaxin-Fan/ASEP" class="external-link">ASEP</a>, which allows for
+gene-level allelic imbalance detection, accounting for unknown genotype
+of other nearby regulatory variants. PAIRADISE and ASEP are therefore
+applicable across populations of genotypically diverse individuals. We
+link to these publications for background reading below.</p>
 </div>
 <div class="section level3">
 <h3 id="pre-requisites">Pre-requisites<a class="anchor" aria-label="anchor" href="#pre-requisites"></a>
@@ -117,25 +135,36 @@ isoforms/transcripts?</li>
 <li>Some familiarity with working with <em>SummarizedExperiment</em>
 objects will help.</li>
 </ul>
-<p>Theoretical background on allelic expression:</p>
+</div>
+<div class="section level3">
+<h3 id="background-reading">Background reading<a class="anchor" aria-label="anchor" href="#background-reading"></a>
+</h3>
 <ul>
 <li><a href="https://doi.org/10.1186/s13059-015-0762-6" class="external-link">Tools and best
 practices for data processing in allelic expression analysis</a></li>
 <li><a href="https://doi.org/10.1186/s13059-020-02122-z" class="external-link">A vast resource
 of allelic expression data spanning human tissues</a></li>
-<li><a href="https://doi.org/10.1093/bioinformatics/bty078" class="external-link">Hierarchical
-analysis of RNA-seq reads improves the accuracy of allele-specific
-expression</a></li>
-<li><a href="https://doi.org/10.1186/gb-2011-12-2-r13" class="external-link">Haplotype and
+<li>
+<a href="https://doi.org/10.1186/gb-2011-12-2-r13" class="external-link">Haplotype and
 isoform specific expression estimation using multi-mapping RNA-seq
-reads</a></li>
+reads</a> (mmseq)</li>
+<li>
+<a href="https://doi.org/10.1093/bioinformatics/bty078" class="external-link">Hierarchical
+analysis of RNA-seq reads improves the accuracy of allele-specific
+expression</a> (EMASE)</li>
+<li>
+<a href="https://doi.org/10.1016/j.ajhg.2020.07.005" class="external-link">Detecting
+Allele-Specific Alternative Splicing from Population-Scale RNA-Seq
+Data</a> (PAIRADISE)</li>
+<li><a href="https://doi.org/10.1371/journal.pgen.1008786" class="external-link">ASEP:
+Gene-based detection of allele-specific expression across individuals in
+a population by RNA sequencing</a></li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="participation">Participation<a class="anchor" aria-label="anchor" href="#participation"></a>
 </h3>
-<p>The format is lecture + lab, with plenty of time for data
-exploration.</p>
+<p>The format is lecture + lab, with time for data exploration.</p>
 </div>
 <div class="section level3">
 <h3 id="r-bioconductor-packages-used">
@@ -182,25 +211,49 @@ exploration.</p>
 <h3 id="learning-goals">Learning goals<a class="anchor" aria-label="anchor" href="#learning-goals"></a>
 </h3>
 <ul>
-<li>describe how to…</li>
-<li>identify methods for…</li>
-<li>understand the difference between…</li>
+<li>understand why analyzing allelic expression can be useful for
+learning about <em>cis</em> genetic regulation</li>
+<li>understand differences between approaches to allelic
+quantification</li>
+<li>understand difference among types of allelic imbalance tests,
+e.g. “global”, “differential”, and “dynamic” imbalance</li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="learning-objectives">Learning objectives<a class="anchor" aria-label="anchor" href="#learning-objectives"></a>
 </h3>
 <ul>
-<li>analyze xyz data to produce…</li>
-<li>create xyz plots</li>
-<li>evaluate xyz data for artifacts</li>
+<li>import allelic quantification data into R</li>
+<li>exploratory analysis of allelic data with uncertainty</li>
+<li>statistical testing for allelic imbalance across samples</li>
+<li>exploration of testing results with heatmaps and genome browser
+plots</li>
 </ul>
 </div>
 </div>
 <div class="section level2">
 <h2 id="what-is-allelic-expression-and-why-do-we-care">What is allelic expression and why do we care<a class="anchor" aria-label="anchor" href="#what-is-allelic-expression-and-why-do-we-care"></a>
 </h2>
-<p>…</p>
+<p><img src="images/heterozygous.jpg" title="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg" alt="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg"></p>
+<p>Let us assume for this workshop that we are studying a diploid
+organism, and we focus on the genes with two copies (so genes on the
+autosome, and e.g. chr X for XX individuals). We do not consider here
+allelic quantification in cases of complex copy number such as tumor
+gene expression.</p>
+<p>In most RNA-seq pipelines, we are concerned with <em>total
+expression</em> of genes or transcripts, where we do not distinguish
+between RNA transcripts from either of the two chromosomes. Suppose the
+light blue region highlighted above is a gene, and there are two alleles
+(B and b) which differ by one or more genetic variants. In the case that
+there are genetic variants falling within the exons of the gene, some
+RNA-seq reads may contain information that allows us to determine the
+origin of the RNA transcript, whether from the B chromosome or the b
+chromosome. Typically, RNA-seq analysis pipelines just are concerned
+with counting reads aligning to the light blue region, perhaps
+attempting to identify which splice isoforms these align to, but not
+concerned with identifying which chromosome the reads come from.</p>
+<p>What does allelic tell us…</p>
+<p>Why bootstrapping? Why do we need this information?</p>
 </div>
 <div class="section level2">
 <h2 id="seesaw-pipeline">SEESAW pipeline<a class="anchor" aria-label="anchor" href="#seesaw-pipeline"></a>
@@ -211,7 +264,17 @@ data into Bioconductor. These are outlined as the first parts of the
 pipeline in the diagram below. These are also described in detail in the
 <a href="https://mikelove.github.io/fishpond/articles/allelic.html" class="external-link">allelic
 vignette</a> for the fishpond package.</p>
-<p><img src="images/SEESAW.png"><!-- --></p>
+<p>The input to the pipeline of methods is RNA-seq data (FASTQ files),
+information about the diploid reference genome (e.g. VCF file), and
+information about the isoforms (e.g. GTF file). The SEESAW suite of
+methods is currently designed to work for experiments with multiple
+replicates of samples with the same diploid genome, e.g. F1 crosses, or
+time series of human cell lines.</p>
+<p>The R code below will begin at the center blue square with
+<code><a href="https://rdrr.io/pkg/fishpond/man/importAllelicCounts.html" class="external-link">importAllelicCounts()</a></code>, assuming that diploid quantification
+with bootstrap replicates for uncertainty has already been
+performed.</p>
+<p><img src="images/SEESAW.png" title="Diagram of SEESAW pipeline, including g2gtools, Salmon index, Salmon quant, and import into Bioconductor using fishpond package funcctions" alt="Diagram of SEESAW pipeline, including g2gtools, Salmon index, Salmon quant, and import into Bioconductor using fishpond package funcctions"></p>
 <p>Links to relevant software:</p>
 <ul>
 <li>
@@ -340,6 +403,7 @@ of bone mass attainment. PLoS Genet 2014 Jun;10(6):e1004423. PMID:
 <p>For each sample and each allele, we have counts and also bootstrap
 replicates. The bootstrap replicates are from Salmon, by specifying
 <code>--numBootstraps 30</code> during quantification.</p>
+<p><strong>Q: Why do we need bootstrap replicates?</strong></p>
 <p>We can use <em>fishpond</em> functions to do some basic exploration
 of the allelic counts.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
@@ -361,12 +425,25 @@ We can also visualize the distributions for all samples using
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">g</span>, idx<span class="op">=</span><span class="fl">1</span>, x<span class="op">=</span><span class="st">"allele"</span>, legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/plotInfReps-1.png" width="700"></p>
-<p>We can also group the allelic counts by sample, e.g.:</p>
+<p>We can also group the allelic counts ordered by sample, e.g.:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">g</span><span class="op">[</span>,<span class="va">g</span><span class="op">$</span><span class="va">cross</span> <span class="op">==</span> <span class="st">"CASTxB6"</span><span class="op">]</span>,</span>
-<span>            idx<span class="op">=</span><span class="fl">1</span>, x<span class="op">=</span><span class="st">"allele"</span>, cov<span class="op">=</span><span class="st">"day"</span>,</span>
-<span>            legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">gcast</span> <span class="op">&lt;-</span> <span class="va">g</span><span class="op">[</span>,<span class="va">g</span><span class="op">$</span><span class="va">cross</span> <span class="op">==</span> <span class="st">"CASTxB6"</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">gcast</span>, idx<span class="op">=</span><span class="fl">1</span>, x<span class="op">=</span><span class="st">"allele"</span>, cov<span class="op">=</span><span class="st">"day"</span>, legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/plotInfReps2-1.png" width="700"></p>
+<p>In the above plot, the samples are ordered by sample, as if
+<code>day</code> x <code>allele</code> were a categorical variable. We
+can also plot <code>day</code> on its original continuous scale. To do
+so, we use points and lines to represent the bootstrap distribution
+instead of boxplots. To draw the line, we need to first compute the
+bootstrap variance, which can be computed with the
+<code><a href="https://rdrr.io/pkg/fishpond/man/computeInfRV.html" class="external-link">computeInfRV()</a></code> function (InfRV = “inferential relative
+variance”, a useful diagnostic for comparing uncertainty across
+features):</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/computeInfRV.html" class="external-link">computeInfRV</a></span><span class="op">(</span><span class="va">gcast</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">gcast</span>, idx<span class="op">=</span><span class="fl">1</span>, x<span class="op">=</span><span class="st">"day"</span>, cov<span class="op">=</span><span class="st">"allele"</span>,</span>
+<span>            shiftX<span class="op">=</span><span class="fl">.2</span>, legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="Bioc2022AllelicExpression_files/figure-html/plotInfReps3-1.png" width="700"></p>
 </div>
   </div>
 

@@ -232,12 +232,12 @@ plots</li>
 </div>
 </div>
 <div class="section level2">
-<h2 id="what-is-allelic-expression-and-why-do-we-care">What is allelic expression and why do we care<a class="anchor" aria-label="anchor" href="#what-is-allelic-expression-and-why-do-we-care"></a>
+<h2 id="what-is-allelic-expression">What is allelic expression<a class="anchor" aria-label="anchor" href="#what-is-allelic-expression"></a>
 </h2>
 <p><img src="images/heterozygous.jpg" title="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg" alt="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg"></p>
 <p>Let us assume for this workshop that we are studying a diploid
 organism, and we focus on the genes with two copies (so genes on the
-autosome, and e.g. chr X for XX individuals). We do not consider here
+autosome, and e.g. chrX for XX individuals). We do not consider here
 allelic quantification in cases of complex copy number such as tumor
 gene expression.</p>
 <p>In most RNA-seq pipelines, we are concerned with <em>total
@@ -249,11 +249,88 @@ there are genetic variants falling within the exons of the gene, some
 RNA-seq reads may contain information that allows us to determine the
 origin of the RNA transcript, whether from the B chromosome or the b
 chromosome. Typically, RNA-seq analysis pipelines just are concerned
-with counting reads aligning to the light blue region, perhaps
-attempting to identify which splice isoforms these align to, but not
-concerned with identifying which chromosome the reads come from.</p>
-<p>What does allelic tell us…</p>
-<p>Why bootstrapping? Why do we need this information?</p>
+with counting reads aligning to the light blue region, regardless of
+which chromosome. Some pipelines will attempt to identify which splice
+isoforms these align to, but do not attempt to distinguish between
+alleles.</p>
+<p>In SEESAW (and mmseq and EMASE) we attempt to distinguish both allele
+and isoform from the RNA-seq reads. Again, note that, while there is
+always expression from two alleles, only in the middle two cases above,
+with one or genetic variants falling in the exons of the highlighted
+gene, can we recover allelic information from RNA-seq reads. In this
+workshop, we will therefore look at two counts per sample, one count for
+the <code>a2</code> or reference allele, and the other count for the
+<code>a1</code> or alternate allele. In our case, the reference will be
+the C57BL/6J (or “B6”) mouse genome, and the alternate allele will be
+the CAST/EiJ mouse genome (we will focus on the B6xCAST F1 hybrid
+mouse).</p>
+</div>
+<div class="section level2">
+<h2 id="allelic-imbalance">Allelic imbalance<a class="anchor" aria-label="anchor" href="#allelic-imbalance"></a>
+</h2>
+<p>The expression of the two alleles may differ for a variety of
+reasons. Imagine a single cell with two copies of a gene that may be
+transcribed. You may be familiar with the concept of “transcriptional
+bursting”:</p>
+<blockquote>
+<p>Mammalian gene expression is inherently stochastic, and results in
+discrete bursts of RNA molecules that are synthesized from each
+allele.</p>
+</blockquote>
+<p>-Larsson <em>et al.</em> “Genomic encoding of transcriptional burst
+kinetics.” <em>Nature</em> <strong>565</strong>, 251–254 (2019) <a href="https://doi.org/10.1038/s41586-018-0836-1" class="external-link uri">https://doi.org/10.1038/s41586-018-0836-1</a>. (Other papers
+describing the stochastic nature of expression from each allele are the
+<a href="https://doi.org/10.1186/s13059-017-1200-8" class="external-link">SCALE</a> and <a href="https://doi.org/10.1038/s41467-019-13099-0" class="external-link">scBASE</a> method
+papers.)</p>
+<p>We might expect that these stochastic differences between the two
+alleles would average out if we look at many cells, as in bulk RNA-seq.
+But in some cases, we may see systematic differences between the two
+alleles. Some reasons why:</p>
+<ol style="list-style-type: decimal">
+<li>Interesting biological differences</li>
+<li>Technical artifacts</li>
+</ol>
+<p>As in <a href="https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0762-6/figures/1" class="external-link">Figure
+1</a> of Castel <em>et al.</em> (2015), the largest differences seen in
+allelic imbalance are likely mapping bias or genotyping errors (e.g. #2
+above). If we map reads to the reference genome, then we will generate a
+systematic bias where reads from the alternate allele will tend to have
+lower counts. Likewise, if one of the two genomes has lower quality,
+even if we map reads to both genomes or transcriptomes (as in SEESAW) we
+will see a systematic bias towards the higher quality genome. Here we
+assume both genomes are equally free of errors, but assessing systematic
+bias is an important part of allelic analysis (e.g. histograms or MA
+plots of the difference between the mapping rate of the two alleles
+across all genes).</p>
+<p>However, of the type #1 above, there are some possibilities for the
+source of allelic differences in RNA abundance:</p>
+<ul>
+<li>Epigenetic (e.g. the common example of chrX inactivation)</li>
+<li>Nonsense-mediated decay (NMD)</li>
+<li>
+<em>Cis</em>-genetic regulation (cGR)</li>
+</ul>
+<p>In the first case, one allele is genomically imprinted, which may
+involve DNA methylation and histone modifications depending on the
+species. In the second and third case, RNA is often produced from both
+alleles, but one is degraded at a higher rate (NMD) or produced at a
+higher rate (cGR).</p>
+<p>Our motivation in developing SEESAW was particular on detecting cGR,
+as we are interested in how non-coding variants <em>cis</em> to a gene
+may affect transcription. These could affect transcription through
+alteration of transcription factor binding sites (TFBS) or through
+changes to splicing. While both TFBS and splicing changes are of
+interest, in this workshop we will focus on non-coding variation that
+affects TFBS and therefore modulates transcriptional activity at the
+promoter.</p>
+<p>We therefore will focus on cases where there is allelic imbalance of
+a transcript, and we can detect this imbalance with RNA-seq (center two
+cases in the above diagram), and we hypothesize that this imbalance is
+the result of a heterozygous variant in some regulatory region of the
+gene. As we only focus here on RNA-seq, we will not have additional data
+that allows us to locate the source of the regulatory change across the
+two alleles. For this, it would be useful to have complementary ATAC-seq
+or ChIP-seq (if a particular TF is of interest).</p>
 </div>
 <div class="section level2">
 <h2 id="seesaw-pipeline">SEESAW pipeline<a class="anchor" aria-label="anchor" href="#seesaw-pipeline"></a>
@@ -338,25 +415,26 @@ counts.</p>
 <span><span class="va">keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu">assay</span><span class="op">(</span><span class="va">gse</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">10</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="fl">6</span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">keep</span><span class="op">)</span></span>
 <span><span class="va">gse</span> <span class="op">&lt;-</span> <span class="va">gse</span><span class="op">[</span><span class="va">keep</span>,<span class="op">]</span></span></code></pre></div>
-<p>Alternatively, we can group transcript-level counts to the TSS level
-using the following code chunk to define <code>txps</code>.
-<code><a href="https://rdrr.io/pkg/fishpond/man/makeTx2Tss.html" class="external-link">makeTx2Tss()</a></code> is a convenience function in
-<em>fishpond</em>. The <code>maxgap=50</code> argument means we will
-group together transcripts that have TSS that fall within 50bp of each
-other.</p>
+<p>Alternatively, we can group transcript-level counts to the
+transcription start site (TSS) level using the following code chunk to
+define <code>txps</code>. <code><a href="https://rdrr.io/pkg/fishpond/man/makeTx2Tss.html" class="external-link">makeTx2Tss()</a></code> is a convenience
+function in <em>fishpond</em>. The <code>maxgap=50</code> argument means
+we will group together transcripts that have TSS that fall within 50bp
+of each other.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">txps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/makeTx2Tss.html" class="external-link">makeTx2Tss</a></span><span class="op">(</span><span class="va">edb</span>, maxgap<span class="op">=</span><span class="fl">50</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">tx_id</span>, <span class="va">gene_id</span>, <span class="va">group_id</span>, <span class="va">tss</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Q: why would we want to collapse to TSS level?</strong></p>
 </div>
 <div class="section level2">
-<h2 id="explore-allelic-counts">Explore allelic counts<a class="anchor" aria-label="anchor" href="#explore-allelic-counts"></a>
+<h2 id="mouse-osteoblast-differentiation">Mouse osteoblast differentiation<a class="anchor" aria-label="anchor" href="#mouse-osteoblast-differentiation"></a>
 </h2>
 <p>We have two pre-packaged datasets as part of this workshop package,
 one where allelic counts from an RNA-seq experiment are summarized to
 the gene level, and another where they are summarized to the TSS
 level.</p>
-<p>The datasets are described in the man pages (see References), but
-briefly, mouse osteoblast cells were differentiated over a time course
+<p>The datasets are described in the man pages (see References tab).
+Briefly, mouse osteoblast cells were differentiated over a time course
 from day 2 to day 18. The data has been subset to just the genes on
 chr1. A reference for the experiment is:</p>
 <blockquote>
@@ -366,7 +444,15 @@ facilitates the identification of novel loci in the genetic regulation
 of bone mass attainment. PLoS Genet 2014 Jun;10(6):e1004423. PMID:
 24945404 <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4063697/" class="external-link uri">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4063697/</a></p>
 </blockquote>
-<p>We load the gene-level dataset:</p>
+<p>…more about osteoblasts and their genetic importance…</p>
+<p><strong>Q: why would we be interested in allelic expression during
+osteoblast differentiation?</strong></p>
+</div>
+<div class="section level2">
+<h2 id="explore-allelic-counts">Explore allelic counts<a class="anchor" aria-label="anchor" href="#explore-allelic-counts"></a>
+</h2>
+<p>We load the gene-level dataset created with
+<code><a href="https://rdrr.io/pkg/fishpond/man/importAllelicCounts.html" class="external-link">importAllelicCounts()</a></code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bioconductor.org/packages/SummarizedExperiment" class="external-link">SummarizedExperiment</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mikelove.github.io/Bioc2022AllelicExpression">Bioc2022AllelicExpression</a></span><span class="op">)</span></span>
@@ -444,6 +530,28 @@ features):</p>
 <span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">gcast</span>, idx<span class="op">=</span><span class="fl">1</span>, x<span class="op">=</span><span class="st">"day"</span>, cov<span class="op">=</span><span class="st">"allele"</span>,</span>
 <span>            shiftX<span class="op">=</span><span class="fl">.2</span>, legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/plotInfReps3-1.png" width="700"></p>
+</div>
+<div class="section level2">
+<h2 id="filter-non-informative-features">Filter non-informative features<a class="anchor" aria-label="anchor" href="#filter-non-informative-features"></a>
+</h2>
+<p>Some features have no sequence difference between the two alleles.
+One easy way to detect these is to look at a single bootstrap replicate,
+e.g. the first one <code>infRep1</code>. If this bootstrap sample gives
+the same count to each allele, across all samples, this implies either
+that the sequence was identical across alleles, or there were no reads
+covering the part of the transcript sequence that contains a difference
+across alleles. We remove these from the dataset, as they are
+non-informative for allelic imbalance analysis.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">gcast</span><span class="op">)</span><span class="op">/</span><span class="fl">2</span></span>
+<span><span class="va">rep1a1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">gcast</span>, <span class="st">"infRep1"</span><span class="op">)</span><span class="op">[</span>, <span class="va">gcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a1"</span> <span class="op">]</span></span>
+<span><span class="va">rep1a2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">gcast</span>, <span class="st">"infRep1"</span><span class="op">)</span><span class="op">[</span>, <span class="va">gcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a2"</span> <span class="op">]</span></span>
+<span><span class="va">someInfo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">rep1a1</span> <span class="op">-</span> <span class="va">rep1a2</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span> <span class="op">&lt;</span> <span class="va">n</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">someInfo</span><span class="op">)</span></span>
+<span><span class="co">#&gt; someInfo</span></span>
+<span><span class="co">#&gt; FALSE  TRUE </span></span>
+<span><span class="co">#&gt;    50  1161</span></span>
+<span><span class="va">gcast</span> <span class="op">&lt;-</span> <span class="va">gcast</span><span class="op">[</span> <span class="va">someInfo</span>, <span class="op">]</span></span></code></pre></div>
 </div>
   </div>
 

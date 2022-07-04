@@ -3,7 +3,7 @@ pkgdown: 2.0.5
 pkgdown_sha: ~
 articles:
   Bioc2022AllelicExpression: Bioc2022AllelicExpression.html
-last_built: 2022-07-03T18:11Z
+last_built: 2022-07-04T16:17Z
 urls:
   reference: https://mikelove.github.io/Bioc2022AllelicExpression/reference
   article: https://mikelove.github.io/Bioc2022AllelicExpression/articles

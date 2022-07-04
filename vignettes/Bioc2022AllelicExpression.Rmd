@@ -123,7 +123,7 @@ An example for a 45-minute workshop:
 * exploration of testing results with heatmaps and genome browser
   plots 
 
-## What is allelic expression and why do we care
+## What is allelic expression
 
 ```{r, echo=FALSE, fig.alt="Diagram of chromosomes with homozygous and heterozygous alleles, from URL: https://commons.wikimedia.org/wiki/File:Heterozygous.jpg"}
 knitr::include_graphics("images/heterozygous.jpg")
@@ -131,7 +131,7 @@ knitr::include_graphics("images/heterozygous.jpg")
 
 Let us assume for this workshop that we are studying a diploid
 organism, and we focus on the genes with two copies (so genes on the
-autosome, and e.g. chr X for XX individuals). We do not consider here
+autosome, and e.g. chrX for XX individuals). We do not consider here
 allelic quantification in cases of complex copy number such as tumor
 gene expression. 
 
@@ -144,13 +144,97 @@ there are genetic variants falling within the exons of the gene, some
 RNA-seq reads may contain information that allows us to determine the
 origin of the RNA transcript, whether from the B chromosome or the b
 chromosome. Typically, RNA-seq analysis pipelines just are concerned
-with counting reads aligning to the light blue region, perhaps
-attempting to identify which splice isoforms these align to, but not
-concerned with identifying which chromosome the reads come from.
+with counting reads aligning to the light blue region, regardless of
+which chromosome. Some pipelines will attempt to identify which splice
+isoforms these align to, but do not attempt to distinguish between
+alleles. 
 
-What does allelic tell us...
+In SEESAW (and mmseq and EMASE) we attempt to distinguish both allele
+and isoform from the RNA-seq reads. Again, note that, while there is
+always expression from two alleles, only in the middle two cases
+above, with one or genetic variants falling in the exons of the
+highlighted gene, can we recover allelic information from RNA-seq
+reads. In this workshop, we will therefore look at two counts per
+sample, one count for the `a2` or reference allele, and the other
+count for the `a1` or alternate allele. In our case, the reference
+will be the C57BL/6J (or "B6") mouse genome, and the alternate allele
+will be the CAST/EiJ mouse genome (we will focus on the B6xCAST F1
+hybrid mouse).
 
-Why bootstrapping? Why do we need this information?
+## Allelic imbalance
+
+The expression of the two alleles may differ for a variety of
+reasons. Imagine a single cell with two copies of a gene that may be
+transcribed. You may be familiar with the concept of "transcriptional
+bursting":
+
+> Mammalian gene expression is inherently stochastic, and results
+> in discrete bursts of RNA molecules that are synthesized from each
+> allele.
+
+-Larsson *et al.* "Genomic encoding of transcriptional burst
+kinetics." *Nature* **565**, 251–254 (2019) 
+<https://doi.org/10.1038/s41586-018-0836-1>.
+(Other papers describing the stochastic nature of expression from each
+allele are the 
+[SCALE](https://doi.org/10.1186/s13059-017-1200-8) and 
+[scBASE](https://doi.org/10.1038/s41467-019-13099-0) 
+method papers.)
+
+We might expect that these stochastic differences between the two
+alleles would average out if we look at many cells, as in bulk
+RNA-seq. But in some cases, we may see systematic differences between
+the two alleles. Some reasons why:
+
+1. Interesting biological differences
+2. Technical artifacts
+
+As in 
+[Figure
+1](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0762-6/figures/1)
+of Castel *et al.* (2015), the largest differences seen in allelic
+imbalance are likely mapping bias or genotyping errors (e.g. #2
+above). If we map reads to the reference genome, then we will
+generate a systematic bias where reads from the alternate allele will
+tend to have lower counts. Likewise, if one of the two genomes has
+lower quality, even if we map reads to both genomes or transcriptomes
+(as in SEESAW) we will see a systematic bias towards the higher
+quality genome. Here we assume both genomes are equally free of
+errors, but assessing systematic bias is an important part of allelic
+analysis (e.g. histograms or MA plots of the difference between the
+mapping rate of the two alleles across all genes).
+
+However, of the type #1 above, there are some possibilities for the
+source of allelic differences in RNA abundance:
+
+* Epigenetic (e.g. the common example of chrX inactivation)
+* Nonsense-mediated decay (NMD)
+* *Cis*-genetic regulation (cGR)
+
+In the first case, one allele is genomically imprinted, which may
+involve DNA methylation and histone modifications depending on the
+species. In the second and third case, RNA is often produced from both
+alleles, but one is degraded at a higher rate (NMD) or produced at a
+higher rate (cGR). 
+
+Our motivation in developing SEESAW was particular on detecting cGR,
+as we are interested in how non-coding variants *cis* to a gene may
+affect transcription. These could affect transcription through
+alteration of transcription factor binding sites (TFBS) or through
+changes to splicing. While both TFBS and splicing changes are of
+interest, in this workshop we will focus on non-coding variation that
+affects TFBS and therefore modulates transcriptional activity at the
+promoter.
+
+We therefore will focus on cases where there is allelic imbalance of a
+transcript, and we can detect this imbalance with RNA-seq (center two
+cases in the above diagram), and we hypothesize that this imbalance is
+the result of a heterozygous variant in some regulatory region of the
+gene. As we only focus here on RNA-seq, we will not have additional
+data that allows us to locate the source of the regulatory change
+across the two alleles. For this, it would be useful to have
+complementary ATAC-seq or ChIP-seq (if a particular TF is of
+interest).
 
 ## SEESAW pipeline
 
@@ -245,7 +329,8 @@ table(keep)
 gse <- gse[keep,]
 ```
 
-Alternatively, we can group transcript-level counts to the TSS level
+Alternatively, we can group transcript-level counts to the
+transcription start site (TSS) level
 using the following code chunk to define `txps`. `makeTx2Tss()` is a
 convenience function in *fishpond*. The `maxgap=50` argument means we
 will group together transcripts that have TSS that fall within 50bp of
@@ -256,15 +341,17 @@ txps <- makeTx2Tss(edb, maxgap=50) %>%
   select(tx_id, gene_id, group_id, tss)
 ```
 
-## Explore allelic counts
+**Q: why would we want to collapse to TSS level?**
+
+## Mouse osteoblast differentiation
 
 We have two pre-packaged datasets as part of this workshop
 package, one where allelic counts from an RNA-seq experiment are
 summarized to the gene level, and another where they are summarized to
 the TSS level.
 
-The datasets are described in the man pages (see References), but
-briefly, mouse osteoblast cells were differentiated over a time course
+The datasets are described in the man pages (see References tab).
+Briefly, mouse osteoblast cells were differentiated over a time course
 from day 2 to day 18. The data has been subset to just the genes on
 chr1. A reference for the experiment is:
 
@@ -274,7 +361,14 @@ chr1. A reference for the experiment is:
 > bone mass attainment. PLoS Genet 2014 Jun;10(6):e1004423. PMID: 24945404
 > <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4063697/>
 
-We load the gene-level dataset:
+...more about osteoblasts and their genetic importance...
+
+**Q: why would we be interested in allelic expression during
+osteoblast differentiation?**
+
+## Explore allelic counts
+
+We load the gene-level dataset created with `importAllelicCounts()`:
 
 ```{r message=FALSE}
 library(SummarizedExperiment)
@@ -336,3 +430,24 @@ gcast <- computeInfRV(gcast)
 plotInfReps(gcast, idx=1, x="day", cov="allele",
             shiftX=.2, legend=TRUE)
 ```
+
+## Filter non-informative features
+
+Some features have no sequence difference between the two alleles. One
+easy way to detect these is to look at a single bootstrap replicate,
+e.g. the first one `infRep1`. If this bootstrap sample gives the same
+count to each allele, across all samples, this implies either that the
+sequence was identical across alleles, or there were no reads covering
+the part of the transcript sequence that contains a difference across
+alleles. We remove these from the dataset, as they are non-informative
+for allelic imbalance analysis.
+
+```{r}
+n <- ncol(gcast)/2
+rep1a1 <- assay(gcast, "infRep1")[, gcast$allele == "a1" ]
+rep1a2 <- assay(gcast, "infRep1")[, gcast$allele == "a2" ]
+someInfo <- rowSums(abs(rep1a1 - rep1a2) < 1) < n
+table(someInfo)
+gcast <- gcast[ someInfo, ]
+```
+

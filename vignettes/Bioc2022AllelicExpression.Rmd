@@ -348,7 +348,6 @@ will group together transcripts that have TSS that fall within 50bp of
 each other.
 
 ```{r eval=FALSE}
-library(fishpond)
 txps <- makeTx2Tss(edb, maxgap=50) %>%
   select(tx_id, gene_id, group_id, tss)
 ```
@@ -555,7 +554,7 @@ plotAllelicHeatmap(global, idx=idx, annotation_row=dat)
 ```
 
 
-```{r, echo=FALSE, eval = FALSE}
+```{r, echo=FALSE, eval=FALSE}
 library(dplyr)
 test <- as.data.frame(mcols(global))
 # sub_test <- test %>% dplyr::filter(qvalue < 0.05) %>% group_by(gene_id) %>% tally() %>% dplyr::filter(n >1 & n < 4)
@@ -573,7 +572,7 @@ test[diff_dir$x,]
 
 #### Dynamic AI visualization
 
-```{r, echo=FALSE, eval = FALSE}
+```{r, echo=FALSE, eval=FALSE}
 library(dplyr)
 test <- as.data.frame(mcols(dy))
 # sub_test <- test %>% dplyr::filter(qvalue < 0.05) %>% group_by(gene_id) %>% tally() %>% dplyr::filter(n >1 & n < 4)

@@ -159,8 +159,9 @@ sample, one count for the `a2` or reference allele, and the other
 count for the `a1` or alternate allele. In our case, the reference
 will be the C57BL/6J (or "B6") mouse genome, and the alternate allele
 will be the CAST/EiJ mouse genome (we will focus on the B6xCAST F1
-hybrid mouse). The mouse pre-osteoblast like cells went through differentiation induced with  an osteoblast
-differentiation cocktail and RNA was collected every two days from day 2 to day 18 post
+hybrid mouse). The mouse pre-osteoblast like cells went through
+differentiation induced with an osteoblast differentiation cocktail
+and RNA was collected every two days from day 2 to day 18 post
 differentiation (nine time points).
 
 ## Allelic imbalance
@@ -294,13 +295,14 @@ edb <- ah[["AH89211"]] # download annotation for mouse from Ensembl
 txps <- transcripts(edb)
 ```
 
-This is how sample `coldata` looks like
-| |    Cross  | day |   files   |    names   |
-|-|-----------|-----|-----------|------------|
-| 1 | 129xB6  |  2  | directory | 129xB6-d02 |
-| 2 | 129xB6  |  4  | directory | 129xB6-d04 |
-| 3 | CASTxB6 |  2  | directory | CASTxB6-d02|
-| 4 | CASTxB6 |  4  | directory | CASTxB6-d04|
+This is how a sample `coldata` looks like:
+
+|   |  cross  | day |   files             |    names    |
+|---|---------|-----|---------------------|-------------|
+| 1 | 129xB6  |  2  | `/path/to/quant.sf` | 129xB6-d02  |
+| 2 | 129xB6  |  4  | `/path/to/quant.sf` | 129xB6-d04  |
+| 3 | CASTxB6 |  2  | `/path/to/quant.sf` | CASTxB6-d02 |
+| 4 | CASTxB6 |  4  | `/path/to/quant.sf` | CASTxB6-d04 |
 
 We can group the transcripts to the gene level with the following `group_id`:
 
@@ -372,7 +374,9 @@ chr1. A reference for the experiment is:
 > bone mass attainment. PLoS Genet 2014 Jun;10(6):e1004423. PMID: 24945404
 > <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4063697/>
 
-The RNA-seq reads went through the quantification part of *SEESAW* as described above. Only data from chromosome 1 is included in the pre-packaged datasets for simplicity of the workshop. 
+The RNA-seq reads were processed via the quantification part of
+*SEESAW* as described above. Only data from chromosome 1 is included
+in the pre-packaged datasets for simplicity of the workshop.
 
 **Q: why would we be interested in allelic expression during
 osteoblast differentiation?**
@@ -404,19 +408,38 @@ replicates. The bootstrap replicates are from Salmon, by specifying
 We can use *fishpond* functions to do some basic exploration of the
 allelic counts. 
 
-*counts* is the read counts of given gene. *abundance* is Transcripts Per Kilobase Million (TPM). *length* is the averaged transcript length within the given gene. *infRep*s are the bootstrap counts.
+The *counts* assay provides the read counts for features x samples, as
+Salmon is used for quantification these are estimated counts that are
+non-negative but fractional, not integer. The *abundance* assay gives
+estimates in Transcripts Per Million (TPM). The *length* assay gives
+the average effective transcript length for a given transcript or a
+given gene. Finally the *infRep*'s are the bootstrap samples for the
+counts.
 
-`getTrace` obtains a trace of the inferential replicates of counts for one sample. Plotting the trace in the histagram helps us to visualize the distribution of the estimated counts for the day 2 sample of the CASTxB6 cross, reference allele. We can see for this particular sample, the counts distribute sparsely, implying high inferential uncertainty.
-
-```{r histBoot}
+```{r}
 library(fishpond)
 assayNames(g)
-dat <- getTrace(g, idx=1, samp_idx="CASTxB6-d02-a2")
-hist(dat$count, border="white", col="grey50", xlab="estimated count, a2")
 ```
 
-We can also visualize the distributions for all samples for a given gene using
-`plotInfReps()`. Here we have a boxplot of inferential replicates for gene ENSMUSG00000004110 grouped by alleles.
+`getTrace` obtains a trace of the inferential replicates of counts for
+one feature and one sample (multiple features/samples can also be
+returned). Plotting the trace in the histogram helps us to visualize
+the distribution of the estimated counts for the day 2 sample of the
+CASTxB6 cross, reference allele (`a2`). We can see for this particular
+sample, the counts have roughly the same mean and variance, indicating
+that there is not much uncertainty (minimal bootstrap variance will
+roughly follow what is expected for a Poisson random variable).
+
+```{r histBoot}
+dat <- getTrace(g, idx=1, samp_idx="CASTxB6-d02-a2")
+hist(dat$count, border="white", col="grey50", xlab="estimated count, a2")
+c(mu=mean(dat$count), var=var(dat$count))
+```
+
+We can also visualize the bootstrap distributions for all samples for
+a given gene using `plotInfReps()`. Here we have a boxplot of
+inferential replicates for gene `ENSMUSG00000004110`, grouped by
+allele.
 
 ```{r plotInfReps}
 plotInfReps(g, idx=1, x="allele", legend=TRUE)
@@ -464,11 +487,13 @@ table(someInfo)
 gcast <- gcast[ someInfo, ]
 ```
 
-## Differential TSS Group Expression 
+## Allelic imbalance by TSS-Group 
 
 ### Running Swish at TSS level
 
-Here we switch to using TSS-level data. We first filter out non-informative features as showed the previous step: 
+Here we switch to using TSS-level data. We first filter out
+non-informative features as shown in the previous step:
+
 ```{r}
 data(osteoblast_tss_chr1)
 tss <- osteoblast_tss_chr1
@@ -481,9 +506,16 @@ table(someInfo)
 tcast <- tcast[ someInfo, ]
 ```
 
-Running `swish` generally involves scaling the inferential replicates, filter out rows with insufficient counts and calculate the statistics. Here, we skip scaling since we are comparing alleles within samples. By default, `labelKeep` label features with a minimal count of 10 in at least 3 samples. 
+Running `swish` generally involves scaling the inferential replicates,
+filter out rows with insufficient counts and calculate the
+statistics. Here, we skip scaling since we are comparing alleles
+within samples. By default, `labelKeep` label features with a minimal
+count of 10 in at least 3 samples.
 
-Here we are performing two types of allelic differentiation tests. *global AI test* tests allelic imbalance across all samples. *Dynamic AI test* can detecte non-zero correlation between the log allelic fold change and a continuous variable (time).
+Here we are performing two types of allelic differentiation
+tests. *global AI test* tests allelic imbalance across all
+samples. *Dynamic AI test* can detecte non-zero correlation between
+the log allelic fold change and a continuous variable (time). 
 
 ```{r}
 tcast <- labelKeep(tcast)
@@ -497,7 +529,8 @@ dy <- swish(tcast, x="allele", pair = "day", cov="day", cor = "pearson")
 dy <- computeInfRV(dy)
 ```
 
-The results are stored in `mcols()`. We can examine how many TSS groups are in a 5% FDR set by using:
+The results are stored in `mcols()`. We can examine how many TSS
+groups are in a 5% FDR set by using: 
 
 ```{r}
 table(mcols(global)$qvalue < 0.05)
@@ -506,11 +539,17 @@ table(mcols(dy)$qvalue < 0.05)
 
 ### Plotting Results
 
-We can visualize the relationship between allelic log fold change versus mean expression through MA plots. Blue points are TSS groups in 5% FDR set. One can specify the threshold by using `alpha = ...` option. 
+We can visualize the relationship between allelic log fold change
+versus mean expression through MA plots. Blue points are TSS groups in
+5% FDR set. One can specify the threshold by using `alpha = ...`
+option.
 
-```{r}
-plotMASwish(global, alpha=.05, main = "Global MA Plot")
-plotMASwish(dy, alpha=.05, main = "Dynamic MA Plot")
+```{r maGlobal}
+plotMASwish(global, alpha=.05, main="Global MA Plot")
+```
+
+```{r maDynamic}
+plotMASwish(dy, alpha=.05, main="Dynamic MA Plot")
 ```
 
 #### Global AI visualization
@@ -524,35 +563,46 @@ ah <- AnnotationHub()
 edb <- ah[["AH89211"]]
 ```
 
-`plotAllelicGene` function in `fishpond` can be used to visualize Swish test results ($-log(qvalue)$ and log2FC), allelic proportions and isoform proportions (calculated from TPM) with gene model. You can also provide the argument with gene symbol `symbol = "Soat1"`. Either *TxDb* or *EnsDb* can be use to plot gene models at the top.
+`plotAllelicGene` function in `fishpond` can be used to visualize
+Swish test results ($-log(qvalue)$ and log2FC), allelic proportions
+and isoform proportions (calculated from TPM) with gene model. You can
+also provide the argument with gene symbol `symbol = "Soat1"`. Either
+*TxDb* or *EnsDb* can be use to plot gene models at the top.
 
-```{r}
+```{r globalGene}
 plotAllelicGene(global, gene = "ENSMUSG00000026600", db = edb, labels=list(a2="B6",a1="CAST"))
 ```
 
-We can verify the `plotAllelicGene` with `plotInfReps`. We can see B6 has a higher count than CAST in majority of the samples. One can customize the label of alleles in the function with the following code, switching from `a2, a1` to `B6, CAST`.
+We can verify the `plotAllelicGene` with `plotInfReps`. We can see B6
+has a higher count than CAST in majority of the samples. One can
+customize the label of alleles in the function with the following
+code, switching from `a2, a1` to `B6, CAST`. 
 
-```{r, eval=F, echo= F}
+```{r, eval=FALSE, echo=FALSE}
 match("ENSMUSG00000026600", mcols(tcast)$gene_id)
 ```
 
-```{r}
+```{r globalInfReps}
 tcast$allele_new <- tcast$allele
 levels(tcast$allele_new) <- c("B6", "CAST")
-plotInfReps(tcast, idx=848, x="allele_new", cov="day", legend=TRUE, legendPos = "topright")
+plotInfReps(tcast, idx=848, x="allele_new", cov="day", legend=TRUE, legendPos="topright")
 ```
 
-We can also use heatmap to visualize the difference in expression for the Transcript groups, using `plotAllelicHeatmap`, using `pheatmap`. Darker green in the annotation bar represents a more significant *qvalue* in differential testing. Red is an indication of high alternative allele ratio while blue is high reference allele ratio.
+We can also use heatmap to visualize the difference in expression for
+the Transcript groups, using `plotAllelicHeatmap`, using
+`pheatmap`. Darker green in the annotation bar represents a more
+significant *qvalue* in differential testing. Red is an indication of
+high alternative allele ratio while blue is high reference allele
+ratio. 
 
-```{r}
-idx = mcols(global)$gene_id == "ENSMUSG00000026600"
+```{r globalHeatmap}
+idx <- mcols(global)$gene_id == "ENSMUSG00000026600"
 dat <- data.frame(minusLogQ=-log10(mcols(global)$qvalue[idx]),
                   row.names=rownames(global)[idx])
 colnames(global) <- c(paste0("Day ",seq(2,18, by= 2), "-a2"), 
                   paste0("Day ",seq(2,18, by= 2), "-a1"))
 plotAllelicHeatmap(global, idx=idx, annotation_row=dat)
 ```
-
 
 ```{r, echo=FALSE, eval=FALSE}
 library(dplyr)
@@ -588,24 +638,37 @@ test[diff_dir$x,]
 
 ```
 
-`plotInfReps` is a great way to visualize how allelic counts changes with time. Using `lines` can help us better visualize the trend.
+`plotInfReps` is a great way to visualize how allelic counts changes
+with time. Using `lines` can help us better visualize the trend.
 
-```{r}
+```{r dynamicInfReps1}
 plotInfReps(dy, idx = "ENSMUSG00000026185-1", x= "day", cov = "allele", shiftX = 0.01)
 lines(dy$day[1:9], assay(dy, "mean")["ENSMUSG00000026185-1",1:9], col="dodgerblue") 
 lines(dy$day[10:18], assay(dy, "mean")["ENSMUSG00000026185-1",10:18], col="goldenrod4")
 legend("topleft", legend=c("B6", "CAST"), pch = 15, col = c("dodgerblue", "goldenrod4"))
+```
 
+```{r dynamicInfReps2}
 plotInfReps(dy, idx = "ENSMUSG00000026185-2", x= "day", cov = "allele", shiftX = 0.01)
 lines(dy$day[1:9], assay(dy, "mean")["ENSMUSG00000026185-2",1:9], col="dodgerblue") 
 lines(dy$day[10:18], assay(dy, "mean")["ENSMUSG00000026185-2",10:18], col="goldenrod4")
 
 ```
-**Q: What do you notice with the two infRV plots? HINT: IS the allelic imbalance in the same direction?** 
+**Q: What do you notice with the two infRV plots? HINT: IS the allelic
+imbalance in the same direction?**
 
-`plotAllelicGene` can also be used to visualize time-series allelic imbalance data. We first need to group the timepoints. In this example, we are grouping Day 2-6, Day 8-12 and Day 14-18 together. How the group the timepoints can be determined by your biological motivation or the strategy to maxmize the difference in the ratio by looking at `plotInfReps` plot. The plot shows allelic proportions with grouped timepoints, as well as isoform proportion. We can see an increasing in B6 expression with time for the first transcript group and an increasing in CAST expression with time for the second transcript group.
+`plotAllelicGene` can also be used to visualize time-series allelic
+imbalance data. We first need to group the timepoints. In this
+example, we are grouping Day 2-6, Day 8-12 and Day 14-18 together. How
+the group the timepoints can be determined by your biological
+motivation or the strategy to maxmize the difference in the ratio by
+looking at `plotInfReps` plot. The plot shows allelic proportions with
+grouped timepoints, as well as isoform proportion. We can see an
+increasing in B6 expression with time for the first transcript group
+and an increasing in CAST expression with time for the second
+transcript group. 
 
-```{r}
+```{r dynamicGene}
 dy$time_bins <- cut(dy$day,breaks=c(2,6,12,18),include.lowest=TRUE, labels=FALSE) 
 time_labels <- c("Day02-06","Day08-12","Day14-18")
 dy$time_bins <- time_labels[ dy$time_bins ]
@@ -613,12 +676,14 @@ plotAllelicGene(dy, "ENSMUSG00000026185", edb, cov="time_bins",
                 qvalue=FALSE, log2FC=FALSE, tpmFilter = 0.1, labels=list(a2="B6",a1="CAST"))
 ```
 
-**Do you think we can use heatmap to visualize time-series allelic data?**
+**Q: What type of plot might help to visualize time-series allelic data
+across multiple transcripts and multiple samples?**
 
-The answer is Yes! We can add a time bar on the top of the heatmap to indicate time by defining `col_dat`.  
+We can add a time bar on the top of the heatmap to indicate time by
+defining `col_dat`.
 
-```{r}
-idx = mcols(dy)$gene_id == "ENSMUSG00000026185"
+```{r dynamicHeatmap}
+idx <- mcols(dy)$gene_id == "ENSMUSG00000026185"
 dat <- data.frame(minusLogQ=-log10(mcols(dy)$pvalue[idx]),
                   row.names=rownames(dy)[idx])
 colnames(dy) <- c(paste0("Day ",seq(2,18, by= 2), "-a2"), 

@@ -20,7 +20,9 @@ Suggests:
     fishpond (>= 2.2.0),
     plyranges,
     AnnotationHub,
-    ensembldb
+    ensembldb,
+    Gviz,
+    pheatmap
 URL: https://mikelove.github.io/Bioc2022AllelicExpression
 BugReports: https://github.com/mikelove/Bioc2022AllelicExpression/issues/new/choose
 VignetteBuilder: knitr

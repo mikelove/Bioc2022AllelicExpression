@@ -42,7 +42,7 @@ SEESAW also use the same upstream pipeline as EMASE for construction
 of diploid reference transcripts.
 
 Our approach differs from existing methods for detecting allelic
-imbalance in RNA-seq data such as 
+imbalance (AI) in RNA-seq data such as 
 [WASP](https://github.com/bmvdgeijn/WASP)
 or the Bioconductor package
 [AllelicImbalance](https://www.bioconductor.org/packages/AllelicImbalance),
@@ -62,7 +62,7 @@ information: those that contain both a heterozygous SNP and a splice
 juntion.
 Another relevant recently developed method is
 [ASEP](https://github.com/Jiaxin-Fan/ASEP),
-which allows for gene-level allelic imbalance detection, accounting
+which allows for gene-level allelic imbalance (AI) detection, accounting
 for unknown genotype of other nearby regulatory variants.
 PAIRADISE and ASEP are therefore applicable across populations of
 genotypically diverse individuals. We link to these publications for
@@ -112,7 +112,7 @@ An example for a 45-minute workshop:
 * understand why analyzing allelic expression can be useful for
   learning about *cis* genetic regulation
 * understand differences between approaches to allelic quantification
-* understand difference among types of allelic imbalance tests,
+* understand difference among types of allelic imbalance (AI) tests,
   e.g. "global", "differential", and "dynamic" imbalance
 
 ### Learning objectives
@@ -187,7 +187,8 @@ method papers.)
 We might expect that these stochastic differences between the two
 alleles would average out if we look at many cells, as in bulk
 RNA-seq. But in some cases, we may see systematic differences between
-the two alleles. Some reasons why:
+the two alleles, which we call allelic imbalance (AI). Some reasons
+why:
 
 1. Interesting biological differences
 2. Technical artifacts
@@ -487,21 +488,22 @@ table(someInfo)
 gcast <- gcast[ someInfo, ]
 ```
 
-## Allelic imbalance by TSS Group 
-
-### Running Swish at TSS level
+## Testing for allelic imbalance
 
 Here we switch to using TSS-level data. We have grouped transcripts
 together by TSS using +/- 50bp tolerance (so forming fewer groups by
 allowing +/- 50bp between TSS to join them into a group).
 
-We first filter out non-informative features as shown in the previous
-step: 
-
 ```{r}
 data(osteoblast_tss_chr1)
 tss <- osteoblast_tss_chr1
 tcast <- tss[,tss$cross == "CASTxB6"]
+```
+
+We first filter out non-informative features as shown in the previous
+step: 
+
+```{r}
 n <- ncol(tcast)/2
 rep1a1 <- assay(tcast, "infRep1")[, tcast$allele == "a1" ]
 rep1a2 <- assay(tcast, "infRep1")[, tcast$allele == "a2" ]
@@ -561,7 +563,7 @@ table(mcols(dy)$qvalue < 0.05)
 
 **Q: why are there fewer dynamic positive results?**
 
-### Plotting Results
+## Plotting test results
 
 We can visualize the relationship between allelic log fold change
 versus mean expression through MA plots. Blue points are TSS groups in
@@ -581,7 +583,7 @@ FDR set.
 plotMASwish(dy, alpha=.05, main="Dynamic MA Plot")
 ```
 
-#### Global AI visualization
+## Global AI visualization
 
 We now want to visualize the TSS group analysis in a genomic
 context. To do so, first we must download the mouse Ensembl
@@ -640,7 +642,7 @@ colnames(global) <- c(paste0("Day ",seq(2,18, by= 2), "-a2"),
 plotAllelicHeatmap(global, idx=idx, annotation_row=dat)
 ```
 
-#### Dynamic AI visualization
+## Dynamic AI visualization
 
 `plotInfReps()` is a useful function for visualizing how allelic
 counts changes over a continuous covariate, such as `day`. Using
@@ -661,7 +663,6 @@ plotCurves(dy, idx)
 ```{r dynamicInfReps2}
 idx <- "ENSMUSG00000026185-2"
 plotCurves(dy, idx)
-
 ```
 
 **Q: What do you notice with the two infRV plots? HINT: Is the allelic
@@ -711,7 +712,7 @@ We can add a time bar on the top of a heatmap to indicate time by
 defining `col_dat`.
 
 ```{r dynamicHeatmap}
-idx <- match("ENSMUSG00000026185", mcols(dy)$gene_id)
+idx <- which(mcols(dy)$gene_id == "ENSMUSG00000026185")
 dat <- data.frame(minusLogQ=-log10(mcols(dy)$pvalue[idx]),
                   row.names=rownames(dy)[idx])
 colnames(dy) <- c(paste0("Day ",seq(2,18, by= 2), "-a2"), 
@@ -724,5 +725,4 @@ plotAllelicHeatmap(dy, idx=idx,
                    annotation_row=row_dat,
                    annotation_col=col_dat,
                    cluster_rows=FALSE)
-
 ```

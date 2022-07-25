@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Bioc2022AllelicExpression</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.2</span>
       </span>
     </div>
 
@@ -537,7 +537,8 @@ osteoblast differentiation?</strong></p>
 <p>For each sample and each allele, we have counts and also bootstrap
 replicates. The bootstrap replicates are from Salmon, by specifying
 <code>--numBootstraps 30</code> during quantification.</p>
-<p><strong>Q: Why do we need bootstrap replicates?</strong></p>
+<p><strong>Q: Why do we need bootstrap replicates for allelic analysis
+(or isoform-level analysis)?</strong></p>
 <p>We can use <em>fishpond</em> functions to do some basic exploration
 of the allelic counts.</p>
 <p>The <em>counts</em> assay provides the read counts for features x
@@ -570,7 +571,7 @@ random variable).</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">count</span>, border<span class="op">=</span><span class="st">"white"</span>, col<span class="op">=</span><span class="st">"grey50"</span>, xlab<span class="op">=</span><span class="st">"estimated count, a2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/histBoot-1.png" width="700"></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu<span class="op">=</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">count</span><span class="op">)</span>, var<span class="op">=</span><span class="fu">var</span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">count</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span> mu<span class="op">=</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">count</span><span class="op">)</span>, var<span class="op">=</span><span class="fu">var</span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">count</span><span class="op">)</span> <span class="op">)</span></span>
 <span><span class="co">#&gt;       mu      var </span></span>
 <span><span class="co">#&gt; 94.31868 80.09537</span></span></code></pre></div>
 <p>We can also visualize the bootstrap distributions for all samples for
@@ -621,20 +622,47 @@ non-informative for allelic imbalance analysis.</p>
 <span><span class="co">#&gt; FALSE  TRUE </span></span>
 <span><span class="co">#&gt;    50  1161</span></span>
 <span><span class="va">gcast</span> <span class="op">&lt;-</span> <span class="va">gcast</span><span class="op">[</span> <span class="va">someInfo</span>, <span class="op">]</span></span></code></pre></div>
+<p>We can examine a rough estimate of the log fold change across samples
+to see if there is a systematic bias. Here, the samples with higher
+sequencing depth will have greater influence on the log fold change.
+This is better estimated by the <code><a href="https://rdrr.io/pkg/fishpond/man/swish.html" class="external-link">swish()</a></code> function by
+specifying the pairs of counts per sample. For large count genes, the
+log fold change appears centered on LFC=0.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">a1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">gcast</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">[</span>, <span class="va">gcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a1"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">a2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/colSums.html" class="external-link">rowSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">gcast</span>, <span class="st">"counts"</span><span class="op">)</span><span class="op">[</span>, <span class="va">gcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a2"</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">rough_lfc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log2</a></span><span class="op">(</span><span class="va">a1</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log2</a></span><span class="op">(</span><span class="va">a2</span><span class="op">+</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">rough_total</span> <span class="op">&lt;-</span> <span class="va">a1</span> <span class="op">+</span> <span class="va">a2</span> <span class="op">+</span> <span class="fl">2</span></span>
+<span><span class="va">rough_ratio</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">a1</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span> <span class="op">/</span> <span class="va">rough_total</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log10</a></span><span class="op">(</span><span class="va">rough_total</span><span class="op">)</span>, <span class="va">rough_lfc</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h<span class="op">=</span><span class="fl">0</span>,col<span class="op">=</span><span class="st">"red"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="Bioc2022AllelicExpression_files/figure-html/roughMA-1.png" width="700"></p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/hist.html" class="external-link">hist</a></span><span class="op">(</span><span class="va">rough_ratio</span><span class="op">[</span><span class="va">rough_total</span> <span class="op">&gt;</span> <span class="fl">1e3</span><span class="op">]</span>, breaks<span class="op">=</span><span class="fl">100</span>,</span>
+<span>     col<span class="op">=</span><span class="st">"grey50"</span>, border<span class="op">=</span><span class="st">"white"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v<span class="op">=</span><span class="fl">0.5</span>, col<span class="op">=</span><span class="st">"red"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="Bioc2022AllelicExpression_files/figure-html/roughHist-1.png" width="700"></p>
+<p><strong>Q: what might we see if one of the parental genomes/genotypes
+was poorly annotated?</strong></p>
 </div>
 <div class="section level2">
 <h2 id="testing-for-allelic-imbalance">Testing for allelic imbalance<a class="anchor" aria-label="anchor" href="#testing-for-allelic-imbalance"></a>
 </h2>
-<p>Here we switch to using TSS-level data. We have grouped transcripts
-together by TSS using +/- 50bp tolerance (so forming fewer groups by
-allowing +/- 50bp between TSS to join them into a group).</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<p>Here we switch to using TSS-level allelic counts, which may give
+different AI signal than gene-level allelic counts. Both can be analyzed
+using SEESAW, but we have some additional plots that are particularly
+useful for isoform- or TSS-level allelic analysis.</p>
+<p><strong>Q: how could TSS-level AI signal differ from
+gene-level?</strong></p>
+<p>Here, we have grouped transcripts together by TSS using +/- 50bp
+tolerance (so forming fewer groups by allowing +/- 50bp between TSS to
+join them into a group).</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">osteoblast_tss_chr1</span><span class="op">)</span></span>
 <span><span class="va">tss</span> <span class="op">&lt;-</span> <span class="va">osteoblast_tss_chr1</span></span>
 <span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="va">tss</span><span class="op">[</span>,<span class="va">tss</span><span class="op">$</span><span class="va">cross</span> <span class="op">==</span> <span class="st">"CASTxB6"</span><span class="op">]</span></span></code></pre></div>
 <p>We first filter out non-informative features as shown in the previous
 step:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span><span class="op">/</span><span class="fl">2</span></span>
 <span><span class="va">rep1a1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">tcast</span>, <span class="st">"infRep1"</span><span class="op">)</span><span class="op">[</span>, <span class="va">tcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a1"</span> <span class="op">]</span></span>
 <span><span class="va">rep1a2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/SummarizedExperiment/man/SummarizedExperiment-class.html" class="external-link">assay</a></span><span class="op">(</span><span class="va">tcast</span>, <span class="st">"infRep1"</span><span class="op">)</span><span class="op">[</span>, <span class="va">tcast</span><span class="op">$</span><span class="va">allele</span> <span class="op">==</span> <span class="st">"a2"</span> <span class="op">]</span></span>
@@ -656,18 +684,18 @@ minimal count of 10 in at least 3 samples.</p>
 samples. <em>Dynamic AI</em> tests for non-zero correlation between the
 log allelic fold change and a continuous variable (in this case, the
 <code>day</code>).</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/labelKeep.html" class="external-link">labelKeep</a></span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span></span>
 <span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="va">tcast</span><span class="op">[</span><span class="fu">mcols</span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span><span class="op">$</span><span class="va">keep</span>,<span class="op">]</span></span>
 <span><span class="co"># for plots later</span></span>
 <span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/computeInfRV.html" class="external-link">computeInfRV</a></span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span></span></code></pre></div>
 <p>The tests involve permutation, and so it takes about 20 seconds in
 this case.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">global</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/swish.html" class="external-link">swish</a></span><span class="op">(</span><span class="va">tcast</span>, x<span class="op">=</span><span class="st">"allele"</span>, pair<span class="op">=</span><span class="st">"day"</span><span class="op">)</span></span></code></pre></div>
 <p>The dynamic test here takes about 40 seconds.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">dy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/swish.html" class="external-link">swish</a></span><span class="op">(</span><span class="va">tcast</span>, x<span class="op">=</span><span class="st">"allele"</span>, pair<span class="op">=</span><span class="st">"day"</span>,</span>
 <span>            cov<span class="op">=</span><span class="st">"day"</span>, cor<span class="op">=</span><span class="st">"pearson"</span><span class="op">)</span></span></code></pre></div>
@@ -676,7 +704,7 @@ analysis?</strong></p>
 <p>The results are stored in <code>mcols()</code> in each case. We can
 examine how many TSS groups are detected as having global or dynamic AI
 in a 5% FDR set:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">mcols</span><span class="op">(</span><span class="va">global</span><span class="op">)</span><span class="op">$</span><span class="va">qvalue</span> <span class="op">&lt;</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; FALSE  TRUE </span></span>
@@ -694,14 +722,14 @@ in a 5% FDR set:</p>
 versus mean expression through MA plots. Blue points are TSS groups in
 the 5% FDR set. One can specify the threshold by using
 <code>alpha = ...</code> option.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotMASwish.html" class="external-link">plotMASwish</a></span><span class="op">(</span><span class="va">global</span>, alpha<span class="op">=</span><span class="fl">.05</span>, main<span class="op">=</span><span class="st">"Global MA Plot"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/maGlobal-1.png" width="700"></p>
 <p>The average LFC over all samples is plotted also for the dynamic
 test, although the correlation is the test statistic used for computing
 p-values and q-values. Hence the most extreme LFC are not in the 5% FDR
 set.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotMASwish.html" class="external-link">plotMASwish</a></span><span class="op">(</span><span class="va">dy</span>, alpha<span class="op">=</span><span class="fl">.05</span>, main<span class="op">=</span><span class="st">"Dynamic MA Plot"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/maDynamic-1.png" width="700"></p>
 </div>
@@ -711,12 +739,12 @@ set.</p>
 <p>We now want to visualize the TSS group analysis in a genomic context.
 To do so, first we must download the mouse Ensembl annotations. We do so
 using <em>AnnotationHub</em>:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">AnnotationHub</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jorainer/ensembldb" class="external-link">ensembldb</a></span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ah</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/AnnotationHub/man/AnnotationHub-class.html" class="external-link">AnnotationHub</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; snapshotDate(): 2022-07-11</span></span>
+<span><span class="co">#&gt; snapshotDate(): 2022-07-22</span></span>
 <span><span class="va">edb</span> <span class="op">&lt;-</span> <span class="va">ah</span><span class="op">[[</span><span class="st">"AH89211"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="co">#&gt; loading from cache</span></span></code></pre></div>
 <p>The <code><a href="https://rdrr.io/pkg/fishpond/man/plotAllelicGene.html" class="external-link">plotAllelicGene()</a></code> function in <code>fishpond</code>
@@ -726,7 +754,7 @@ context of the gene model. One can also indicate which gene to plot
 using gene symbol, e.g. <code>symbol="Soat1"</code>. Either
 <em>TxDb</em> or <em>EnsDb</em> can be use to include the gene model at
 the top of the plot.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotAllelicGene.html" class="external-link">plotAllelicGene</a></span><span class="op">(</span><span class="va">global</span>, gene<span class="op">=</span><span class="st">"ENSMUSG00000026600"</span>,</span>
 <span>                db<span class="op">=</span><span class="va">edb</span>, labels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a2<span class="op">=</span><span class="st">"B6"</span>,a1<span class="op">=</span><span class="st">"CAST"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/globalGene-1.png" width="700"></p>
@@ -736,7 +764,7 @@ the top of the plot.</p>
 in majority of the samples. One can customize the label of alleles in
 the function with the following code, switching from <code>a2, a1</code>
 to <code>B6, CAST</code>.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tcast</span><span class="op">$</span><span class="va">allele_new</span> <span class="op">&lt;-</span> <span class="va">tcast</span><span class="op">$</span><span class="va">allele</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">tcast</span><span class="op">$</span><span class="va">allele_new</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"B6"</span>, <span class="st">"CAST"</span><span class="op">)</span></span>
 <span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/match.html" class="external-link">match</a></span><span class="op">(</span><span class="st">"ENSMUSG00000026600"</span>, <span class="fu">mcols</span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span><span class="op">)</span></span>
@@ -751,7 +779,7 @@ more significant <em>qvalue</em> in differential testing (for allelic
 imbalance). A color toward red indicates more of the <code>a1</code>
 allele (CAST) while a color toward blue indicates more of
 <code>a2</code> (B6).</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="fu">mcols</span><span class="op">(</span><span class="va">global</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span> <span class="op">==</span> <span class="st">"ENSMUSG00000026600"</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>minusLogQ<span class="op">=</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log10</a></span><span class="op">(</span><span class="fu">mcols</span><span class="op">(</span><span class="va">global</span><span class="op">)</span><span class="op">$</span><span class="va">qvalue</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>                  row.names<span class="op">=</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">global</span><span class="op">)</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span></span>
@@ -768,7 +796,7 @@ allele (CAST) while a color toward blue indicates more of
 allelic counts changes over a continuous covariate, such as
 <code>day</code>. Using <code>lines</code> can help us better visualize
 the trend.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plotCurves</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">dy</span>, <span class="va">idx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">cols</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"dodgerblue"</span>,<span class="st">"goldenrod4"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/plotInfReps.html" class="external-link">plotInfReps</a></span><span class="op">(</span><span class="va">dy</span>, idx<span class="op">=</span><span class="va">idx</span>, x<span class="op">=</span><span class="st">"day"</span>, cov<span class="op">=</span><span class="st">"allele"</span>, shiftX<span class="op">=</span><span class="fl">0.01</span><span class="op">)</span></span>
@@ -779,7 +807,7 @@ the trend.</p>
 <span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="st">"ENSMUSG00000026185-1"</span></span>
 <span><span class="fu">plotCurves</span><span class="op">(</span><span class="va">dy</span>, <span class="va">idx</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/dynamicInfReps1-1.png" width="700"></p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="st">"ENSMUSG00000026185-2"</span></span>
 <span><span class="fu">plotCurves</span><span class="op">(</span><span class="va">dy</span>, <span class="va">idx</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/dynamicInfReps2-1.png" width="700"></p>
@@ -797,7 +825,7 @@ plot).</p>
 as isoform proportion. We can see an increasing in B6 expression over
 time for the first transcript group and an increasing in CAST expression
 with time for the second transcript group.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># this makes integer bins</span></span>
 <span><span class="va">dy</span><span class="op">$</span><span class="va">time_bins</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cut.html" class="external-link">cut</a></span><span class="op">(</span><span class="va">dy</span><span class="op">$</span><span class="va">day</span>,breaks<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">6</span>,<span class="fl">12</span>,<span class="fl">18</span><span class="op">)</span>,</span>
 <span>                    include.lowest<span class="op">=</span><span class="cn">TRUE</span>, labels<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
@@ -812,7 +840,7 @@ with time for the second transcript group.</p>
 <span>                labels<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a2<span class="op">=</span><span class="st">"B6"</span>,a1<span class="op">=</span><span class="st">"CAST"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/dynamicGene-1.png" width="700"></p>
 <p>The same gene, but looking at <code>infReps</code>:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/which.html" class="external-link">which</a></span><span class="op">(</span><span class="fu">mcols</span><span class="op">(</span><span class="va">dy</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span> <span class="op">==</span> <span class="va">gene</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">1</span><span class="op">)</span>, mar<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3</span>,<span class="fl">4.5</span>,<span class="fl">1.5</span>,<span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">plotCurves</span><span class="op">(</span><span class="va">dy</span>, <span class="va">idx</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
@@ -823,7 +851,7 @@ allelic data across multiple transcripts and multiple
 samples?</strong></p>
 <p>We can add a time bar on the top of a heatmap to indicate time by
 defining <code>col_dat</code>.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">idx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/which.html" class="external-link">which</a></span><span class="op">(</span><span class="fu">mcols</span><span class="op">(</span><span class="va">dy</span><span class="op">)</span><span class="op">$</span><span class="va">gene_id</span> <span class="op">==</span> <span class="st">"ENSMUSG00000026185"</span><span class="op">)</span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>minusLogQ<span class="op">=</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log10</a></span><span class="op">(</span><span class="fu">mcols</span><span class="op">(</span><span class="va">dy</span><span class="op">)</span><span class="op">$</span><span class="va">pvalue</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>                  row.names<span class="op">=</span><span class="fu"><a href="https://rdrr.io/pkg/BiocGenerics/man/row_colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">dy</span><span class="op">)</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span></span>
@@ -839,6 +867,158 @@ defining <code>col_dat</code>.</p>
 <span>                   cluster_rows<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; using posterior mean for calculating ratio</span></span></code></pre></div>
 <p><img src="Bioc2022AllelicExpression_files/figure-html/dynamicHeatmap-1.png" width="700"></p>
+</div>
+<div class="section level2">
+<h2 id="going-further">Going further<a class="anchor" aria-label="anchor" href="#going-further"></a>
+</h2>
+<p>This was a brief exploration of visualization and statistical
+inference of allelic expression data using Bioconductor packages. Some
+points for further analysis:</p>
+<ul>
+<li>
+<em>Lots of plots</em> - In our development of SEESAW, we found that
+allelic analysis within gene benefits greatly from examining many types
+of plots. There are many layers of information (isoform, allele, time
+points, etc.) along with measures of significance or uncertainty, and no
+single plot captures all the information. We recommend looking at many
+plots for genes of interest, to determine if the correct signals are
+being captured / if any signal is present by not captured by the
+design.</li>
+<li>
+<em>Looking at aligned reads</em> - We additionally recommend to
+make use of IGV or other genome browsers to examine distributions of
+reads along transcripts. This requires an additional mapping step
+(mapping reads with either a SNP-aware aligner, or using <a href="https://github.com/bmvdgeijn/WASP" class="external-link">WASP</a> to remove reads
+susceptible to allelic mapping bias. In the mouse osteoblast dataset, we
+used WASP to generate the <code>merged</code> BAM files (Step 6 of the
+<code>mapping</code> pipeline) containing mappability-filtered aligned
+reads, and then often would visualize these aligned reads using <a href="https://software.broadinstitute.org/software/igv/" class="external-link">IGV</a>, for
+genes of interest. This alignment pipeline is then separate from the
+Salmon quantification pipeline described above, and more for quality
+control and examination of reads, haplotypes, and gene models.</li>
+<li>
+<em>Causes of allelic imbalance</em> - here we focused on detecting
+imbalance in the abundance of isoforms/genes across alleles. Systematic
+differences in the expression level of the two alleles could have a
+variety of upstream causes, as described at the beginning of this
+document. One type of upstream cause is genetic variation residing in
+<em>cis</em>-regulatory elements (CRE). One additional dataset that can
+be produced and examined alongside allelic RNA-seq is allelic ATAC-seq
+or ChIP-seq. Observing commensurate changes in the accessibility or
+binding at CRE local to the promoter of the gene (and perhaps linked by
+chromatin interaction data) would be further evidence for a regulatory
+relationship between CRE and transcription.</li>
+</ul>
+<p>More details can be found at the <em>allelic</em> vignette of the
+fishpond package:</p>
+<p><a href="https://mikelove.github.io/fishpond/articles/allelic.html" class="external-link uri">https://mikelove.github.io/fishpond/articles/allelic.html</a></p>
+<p>We expect to also post a preprint describing the methods a few weeks
+following BioC2022 conference.</p>
+</div>
+<div class="section level2">
+<h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
+</h2>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; R version 4.2.0 (2022-04-22)</span></span>
+<span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu (64-bit)</span></span>
+<span><span class="co">#&gt; Running under: Ubuntu 20.04.4 LTS</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Matrix products: default</span></span>
+<span><span class="co">#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3</span></span>
+<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.so.3</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; locale:</span></span>
+<span><span class="co">#&gt;  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              </span></span>
+<span><span class="co">#&gt;  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    </span></span>
+<span><span class="co">#&gt;  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   </span></span>
+<span><span class="co">#&gt;  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 </span></span>
+<span><span class="co">#&gt;  [9] LC_ADDRESS=C               LC_TELEPHONE=C            </span></span>
+<span><span class="co">#&gt; [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; attached base packages:</span></span>
+<span><span class="co">#&gt; [1] stats4    stats     graphics  grDevices utils     datasets  methods  </span></span>
+<span><span class="co">#&gt; [8] base     </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; other attached packages:</span></span>
+<span><span class="co">#&gt;  [1] ensembldb_2.21.2                AnnotationFilter_1.21.0        </span></span>
+<span><span class="co">#&gt;  [3] GenomicFeatures_1.49.5          AnnotationDbi_1.59.1           </span></span>
+<span><span class="co">#&gt;  [5] AnnotationHub_3.5.0             BiocFileCache_2.5.0            </span></span>
+<span><span class="co">#&gt;  [7] dbplyr_2.2.1                    fishpond_2.3.6                 </span></span>
+<span><span class="co">#&gt;  [9] Bioc2022AllelicExpression_0.0.2 SummarizedExperiment_1.27.1    </span></span>
+<span><span class="co">#&gt; [11] Biobase_2.57.1                  GenomicRanges_1.49.0           </span></span>
+<span><span class="co">#&gt; [13] GenomeInfoDb_1.33.3             IRanges_2.31.0                 </span></span>
+<span><span class="co">#&gt; [15] S4Vectors_0.35.1                BiocGenerics_0.43.0            </span></span>
+<span><span class="co">#&gt; [17] MatrixGenerics_1.9.1            matrixStats_0.62.0             </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
+<span><span class="co">#&gt;   [1] backports_1.4.1               Hmisc_4.7-0                  </span></span>
+<span><span class="co">#&gt;   [3] systemfonts_1.0.4             plyr_1.8.7                   </span></span>
+<span><span class="co">#&gt;   [5] lazyeval_0.2.2                splines_4.2.0                </span></span>
+<span><span class="co">#&gt;   [7] BiocParallel_1.31.10          ggplot2_3.3.6                </span></span>
+<span><span class="co">#&gt;   [9] digest_0.6.29                 htmltools_0.5.3              </span></span>
+<span><span class="co">#&gt;  [11] fansi_1.0.3                   checkmate_2.1.0              </span></span>
+<span><span class="co">#&gt;  [13] magrittr_2.0.3                memoise_2.0.1                </span></span>
+<span><span class="co">#&gt;  [15] svMisc_1.2.3                  BSgenome_1.65.2              </span></span>
+<span><span class="co">#&gt;  [17] cluster_2.1.3                 Biostrings_2.65.1            </span></span>
+<span><span class="co">#&gt;  [19] pkgdown_2.0.6                 prettyunits_1.1.1            </span></span>
+<span><span class="co">#&gt;  [21] jpeg_0.1-9                    colorspace_2.0-3             </span></span>
+<span><span class="co">#&gt;  [23] blob_1.2.3                    rappdirs_0.3.3               </span></span>
+<span><span class="co">#&gt;  [25] textshaping_0.3.6             xfun_0.31                    </span></span>
+<span><span class="co">#&gt;  [27] dplyr_1.0.9                   crayon_1.5.1                 </span></span>
+<span><span class="co">#&gt;  [29] RCurl_1.98-1.7                jsonlite_1.8.0               </span></span>
+<span><span class="co">#&gt;  [31] VariantAnnotation_1.43.2      survival_3.3-1               </span></span>
+<span><span class="co">#&gt;  [33] glue_1.6.2                    gtable_0.3.0                 </span></span>
+<span><span class="co">#&gt;  [35] zlibbioc_1.43.0               XVector_0.37.0               </span></span>
+<span><span class="co">#&gt;  [37] DelayedArray_0.23.0           SingleCellExperiment_1.19.0  </span></span>
+<span><span class="co">#&gt;  [39] abind_1.4-5                   scales_1.2.0                 </span></span>
+<span><span class="co">#&gt;  [41] pheatmap_1.0.12               DBI_1.1.3                    </span></span>
+<span><span class="co">#&gt;  [43] Rcpp_1.0.9                    htmlTable_2.4.1              </span></span>
+<span><span class="co">#&gt;  [45] xtable_1.8-4                  progress_1.2.2               </span></span>
+<span><span class="co">#&gt;  [47] foreign_0.8-82                bit_4.0.4                    </span></span>
+<span><span class="co">#&gt;  [49] Formula_1.2-4                 htmlwidgets_1.5.4            </span></span>
+<span><span class="co">#&gt;  [51] httr_1.4.3                    RColorBrewer_1.1-3           </span></span>
+<span><span class="co">#&gt;  [53] ellipsis_0.3.2                farver_2.1.1                 </span></span>
+<span><span class="co">#&gt;  [55] pkgconfig_2.0.3               XML_3.99-0.10                </span></span>
+<span><span class="co">#&gt;  [57] nnet_7.3-17                   Gviz_1.41.1                  </span></span>
+<span><span class="co">#&gt;  [59] sass_0.4.2                    deldir_1.0-6                 </span></span>
+<span><span class="co">#&gt;  [61] utf8_1.2.2                    tidyselect_1.1.2             </span></span>
+<span><span class="co">#&gt;  [63] rlang_1.0.4                   reshape2_1.4.4               </span></span>
+<span><span class="co">#&gt;  [65] later_1.3.0                   munsell_0.5.0                </span></span>
+<span><span class="co">#&gt;  [67] BiocVersion_3.16.0            tools_4.2.0                  </span></span>
+<span><span class="co">#&gt;  [69] cachem_1.0.6                  cli_3.3.0                    </span></span>
+<span><span class="co">#&gt;  [71] generics_0.1.3                RSQLite_2.2.15               </span></span>
+<span><span class="co">#&gt;  [73] evaluate_0.15                 stringr_1.4.0                </span></span>
+<span><span class="co">#&gt;  [75] fastmap_1.1.0                 yaml_2.3.5                   </span></span>
+<span><span class="co">#&gt;  [77] ragg_1.2.2                    knitr_1.39                   </span></span>
+<span><span class="co">#&gt;  [79] bit64_4.0.5                   fs_1.5.2                     </span></span>
+<span><span class="co">#&gt;  [81] purrr_0.3.4                   KEGGREST_1.37.3              </span></span>
+<span><span class="co">#&gt;  [83] mime_0.12                     xml2_1.3.3                   </span></span>
+<span><span class="co">#&gt;  [85] biomaRt_2.53.2                rstudioapi_0.13              </span></span>
+<span><span class="co">#&gt;  [87] compiler_4.2.0                filelock_1.0.2               </span></span>
+<span><span class="co">#&gt;  [89] curl_4.3.2                    png_0.1-7                    </span></span>
+<span><span class="co">#&gt;  [91] interactiveDisplayBase_1.35.0 tibble_3.1.8                 </span></span>
+<span><span class="co">#&gt;  [93] bslib_0.4.0                   stringi_1.7.8                </span></span>
+<span><span class="co">#&gt;  [95] highr_0.9                     desc_1.4.1                   </span></span>
+<span><span class="co">#&gt;  [97] lattice_0.20-45               ProtGenerics_1.29.0          </span></span>
+<span><span class="co">#&gt;  [99] Matrix_1.4-1                  vctrs_0.4.1                  </span></span>
+<span><span class="co">#&gt; [101] pillar_1.8.0                  lifecycle_1.0.1              </span></span>
+<span><span class="co">#&gt; [103] BiocManager_1.30.18           jquerylib_0.1.4              </span></span>
+<span><span class="co">#&gt; [105] data.table_1.14.2             bitops_1.0-7                 </span></span>
+<span><span class="co">#&gt; [107] httpuv_1.6.5                  rtracklayer_1.57.0           </span></span>
+<span><span class="co">#&gt; [109] qvalue_2.29.0                 R6_2.5.1                     </span></span>
+<span><span class="co">#&gt; [111] BiocIO_1.7.1                  latticeExtra_0.6-30          </span></span>
+<span><span class="co">#&gt; [113] promises_1.2.0.1              gridExtra_2.3                </span></span>
+<span><span class="co">#&gt; [115] codetools_0.2-18              dichromat_2.0-0.1            </span></span>
+<span><span class="co">#&gt; [117] gtools_3.9.3                  assertthat_0.2.1             </span></span>
+<span><span class="co">#&gt; [119] rprojroot_2.0.3               rjson_0.2.21                 </span></span>
+<span><span class="co">#&gt; [121] GenomicAlignments_1.33.1      Rsamtools_2.13.3             </span></span>
+<span><span class="co">#&gt; [123] GenomeInfoDbData_1.2.8        parallel_4.2.0               </span></span>
+<span><span class="co">#&gt; [125] hms_1.1.1                     rpart_4.1.16                 </span></span>
+<span><span class="co">#&gt; [127] grid_4.2.0                    rmarkdown_2.14               </span></span>
+<span><span class="co">#&gt; [129] biovizBase_1.45.0             shiny_1.7.2                  </span></span>
+<span><span class="co">#&gt; [131] base64enc_0.1-3               interp_1.1-3                 </span></span>
+<span><span class="co">#&gt; [133] restfulr_0.0.15</span></span></code></pre></div>
 </div>
   </div>
 

@@ -404,7 +404,8 @@ For each sample and each allele, we have counts and also bootstrap
 replicates. The bootstrap replicates are from Salmon, by specifying
 `--numBootstraps 30` during quantification. 
 
-**Q: Why do we need bootstrap replicates?**
+**Q: Why do we need bootstrap replicates for allelic analysis (or
+isoform-level analysis)?**
 
 We can use *fishpond* functions to do some basic exploration of the
 allelic counts. 
@@ -434,7 +435,7 @@ roughly follow what is expected for a Poisson random variable).
 ```{r histBoot}
 dat <- getTrace(g, idx=1, samp_idx="CASTxB6-d02-a2")
 hist(dat$count, border="white", col="grey50", xlab="estimated count, a2")
-c(mu=mean(dat$count), var=var(dat$count))
+c( mu=mean(dat$count), var=var(dat$count) )
 ```
 
 We can also visualize the bootstrap distributions for all samples for
@@ -488,11 +489,43 @@ table(someInfo)
 gcast <- gcast[ someInfo, ]
 ```
 
+We can examine a rough estimate of the log fold change across samples
+to see if there is a systematic bias. Here, the samples with higher
+sequencing depth will have greater influence on the log fold
+change. This is better estimated by the `swish()` function by
+specifying the pairs of counts per sample. For large count genes, the
+log fold change appears centered on LFC=0.
+
+```{r roughMA}
+a1 <- rowSums(assay(gcast, "counts")[, gcast$allele == "a1"])
+a2 <- rowSums(assay(gcast, "counts")[, gcast$allele == "a2"])
+rough_lfc <- log2(a1+1) - log2(a2+1)
+rough_total <- a1 + a2 + 2
+rough_ratio <- (a1 + 1) / rough_total
+plot(log10(rough_total), rough_lfc); abline(h=0,col="red")
+```
+
+```{r roughHist}
+hist(rough_ratio[rough_total > 1e3], breaks=100,
+     col="grey50", border="white")
+abline(v=0.5, col="red")
+```
+
+**Q: what might we see if one of the parental genomes/genotypes was
+poorly annotated?**
+
 ## Testing for allelic imbalance
 
-Here we switch to using TSS-level data. We have grouped transcripts
-together by TSS using +/- 50bp tolerance (so forming fewer groups by
-allowing +/- 50bp between TSS to join them into a group).
+Here we switch to using TSS-level allelic counts, which may give
+different AI signal than gene-level allelic counts. Both can be
+analyzed using SEESAW, but we have some additional plots that are
+particularly useful for isoform- or TSS-level allelic analysis.
+
+**Q: how could TSS-level AI signal differ from gene-level?**
+
+Here, we have grouped transcripts together by TSS using +/- 50bp
+tolerance (so forming fewer groups by allowing +/- 50bp between TSS to
+join them into a group).
 
 ```{r}
 data(osteoblast_tss_chr1)
@@ -725,4 +758,58 @@ plotAllelicHeatmap(dy, idx=idx,
                    annotation_row=row_dat,
                    annotation_col=col_dat,
                    cluster_rows=FALSE)
+```
+
+## Going further
+
+This was a brief exploration of visualization and statistical
+inference of allelic expression data using Bioconductor packages.
+Some points for further analysis:
+
+* *Lots of plots* - In our development of SEESAW, we found that
+  allelic analysis within gene benefits greatly from examining many
+  types of plots. There are many layers of information (isoform,
+  allele, time points, etc.)  along with measures of significance or
+  uncertainty, and no single plot captures all the information. We
+  recommend looking at many plots for genes of interest, to determine
+  if the correct signals are being captured / if any signal is present
+  by not captured by the design.
+* *Looking at aligned reads* - We additionally recommend to make use
+  of IGV or other genome browsers to examine distributions of reads
+  along transcripts. This requires an additional mapping step (mapping
+  reads with either a SNP-aware aligner, or using
+  [WASP](https://github.com/bmvdgeijn/WASP) to remove reads
+  susceptible to allelic mapping bias. In the mouse osteoblast
+  dataset, we used WASP to generate the `merged` BAM files (Step 6 of
+  the `mapping` pipeline) containing mappability-filtered aligned
+  reads, and then often would visualize these aligned reads using 
+  [IGV](https://software.broadinstitute.org/software/igv/), for genes
+  of interest. This alignment pipeline is then separate from the
+  Salmon quantification pipeline described above, and more for quality
+  control and examination of reads, haplotypes, and gene models.
+* *Causes of allelic imbalance* - here we focused on detecting
+  imbalance in the abundance of isoforms/genes across
+  alleles. Systematic differences in the expression level of the two
+  alleles could have a variety of upstream causes, as described at the
+  beginning of this document. One type of upstream cause is genetic
+  variation residing in *cis*-regulatory elements (CRE). One
+  additional dataset that can be produced and examined alongside
+  allelic RNA-seq is allelic ATAC-seq or ChIP-seq. Observing
+  commensurate changes in the accessibility or binding at CRE local to
+  the promoter of the gene (and perhaps linked by chromatin
+  interaction data) would be further evidence for a regulatory
+  relationship between CRE and transcription.
+
+More details can be found at the *allelic* vignette of the fishpond
+package:
+
+<https://mikelove.github.io/fishpond/articles/allelic.html>
+
+We expect to also post a preprint describing the methods a few weeks
+following BioC2022 conference.
+
+## Session info
+
+```{r}
+sessionInfo()
 ```

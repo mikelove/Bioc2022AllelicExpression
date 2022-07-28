@@ -567,15 +567,18 @@ tcast <- tcast[mcols(tcast)$keep,]
 tcast <- computeInfRV(tcast)
 ```
 
-The tests involve permutation, and so it takes about 20 seconds in
-this case.
+The tests involve permutation, and so it takes about 12 seconds in
+this case (on a single core Linux machine).
 
 ```{r}
 set.seed(1)
 global <- swish(tcast, x="allele", pair="day")
 ```
 
-The dynamic test here takes about 40 seconds.
+The dynamic test here takes about 1.5 seconds. The reason it is faster
+than the analysis above is that, for technical reasons, in this type
+of Swish test we do not have to recompute ranks, which is the
+major bottleneck.
 
 ```{r}
 set.seed(1)
@@ -807,6 +810,16 @@ package:
 
 We expect to also post a preprint describing the methods a few weeks
 following BioC2022 conference.
+
+**Acknowledgements:**
+
+* Osteoblast project:
+    - Cheryl Ackert-Bicknell, Gary Churchill, Matthew Vincent, KB Choi
+* SEESAW methods development:
+    - Rob Patro, Noor Pratap Singh, Mohsen Zakeri
+* Financial support:
+    - NHGRI R01-HG009937
+    - NCI Cancer Genomics Training Grant
 
 ## Session info
 

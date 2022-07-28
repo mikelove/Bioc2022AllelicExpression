@@ -1,6 +1,6 @@
 Package: Bioc2022AllelicExpression
 Title: Bioc2022 workshop. SEESAW: Statistical Estimation Of Allelic Expression Using Salmon And Swish
-Version: 0.0.2
+Version: 0.0.3
 Authors@R: 
     c(person("Euphy", "Wu", role="aut"),
       person("Michael", "Love", role=c("aut", "cre"),

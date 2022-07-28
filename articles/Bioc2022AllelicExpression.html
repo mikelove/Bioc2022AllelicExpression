@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">Bioc2022AllelicExpression</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.3</span>
       </span>
     </div>
 
@@ -689,12 +689,15 @@ log allelic fold change and a continuous variable (in this case, the
 <span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="va">tcast</span><span class="op">[</span><span class="fu">mcols</span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span><span class="op">$</span><span class="va">keep</span>,<span class="op">]</span></span>
 <span><span class="co"># for plots later</span></span>
 <span><span class="va">tcast</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/computeInfRV.html" class="external-link">computeInfRV</a></span><span class="op">(</span><span class="va">tcast</span><span class="op">)</span></span></code></pre></div>
-<p>The tests involve permutation, and so it takes about 20 seconds in
-this case.</p>
+<p>The tests involve permutation, and so it takes about 12 seconds in
+this case (on a single core Linux machine).</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">global</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/swish.html" class="external-link">swish</a></span><span class="op">(</span><span class="va">tcast</span>, x<span class="op">=</span><span class="st">"allele"</span>, pair<span class="op">=</span><span class="st">"day"</span><span class="op">)</span></span></code></pre></div>
-<p>The dynamic test here takes about 40 seconds.</p>
+<p>The dynamic test here takes about 1.5 seconds. The reason it is
+faster than the analysis above is that, for technical reasons, in this
+type of Swish test we do not have to recompute ranks, which is the major
+bottleneck.</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">dy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/fishpond/man/swish.html" class="external-link">swish</a></span><span class="op">(</span><span class="va">tcast</span>, x<span class="op">=</span><span class="st">"allele"</span>, pair<span class="op">=</span><span class="st">"day"</span>,</span>
@@ -914,6 +917,26 @@ fishpond package:</p>
 <p><a href="https://mikelove.github.io/fishpond/articles/allelic.html" class="external-link uri">https://mikelove.github.io/fishpond/articles/allelic.html</a></p>
 <p>We expect to also post a preprint describing the methods a few weeks
 following BioC2022 conference.</p>
+<p><strong>Acknowledgements:</strong></p>
+<ul>
+<li>Osteoblast project:
+<ul>
+<li>Cheryl Ackert-Bicknell, Gary Churchill, Matthew Vincent, KB
+Choi</li>
+</ul>
+</li>
+<li>SEESAW methods development:
+<ul>
+<li>Rob Patro, Noor Pratap Singh, Mohsen Zakeri</li>
+</ul>
+</li>
+<li>Financial support:
+<ul>
+<li>NHGRI R01-HG009937</li>
+<li>NCI Cancer Genomics Training Grant</li>
+</ul>
+</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
@@ -945,10 +968,10 @@ following BioC2022 conference.</p>
 <span><span class="co">#&gt;  [3] GenomicFeatures_1.49.5          AnnotationDbi_1.59.1           </span></span>
 <span><span class="co">#&gt;  [5] AnnotationHub_3.5.0             BiocFileCache_2.5.0            </span></span>
 <span><span class="co">#&gt;  [7] dbplyr_2.2.1                    fishpond_2.3.6                 </span></span>
-<span><span class="co">#&gt;  [9] Bioc2022AllelicExpression_0.0.2 SummarizedExperiment_1.27.1    </span></span>
+<span><span class="co">#&gt;  [9] Bioc2022AllelicExpression_0.0.3 SummarizedExperiment_1.27.1    </span></span>
 <span><span class="co">#&gt; [11] Biobase_2.57.1                  GenomicRanges_1.49.0           </span></span>
 <span><span class="co">#&gt; [13] GenomeInfoDb_1.33.3             IRanges_2.31.0                 </span></span>
-<span><span class="co">#&gt; [15] S4Vectors_0.35.1                BiocGenerics_0.43.0            </span></span>
+<span><span class="co">#&gt; [15] S4Vectors_0.35.1                BiocGenerics_0.43.1            </span></span>
 <span><span class="co">#&gt; [17] MatrixGenerics_1.9.1            matrixStats_0.62.0             </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
